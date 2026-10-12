@@ -1,6 +1,6 @@
 # Primal Fight Tracker — UX Plan
 
-Part of the Primal tools at `guppyinteractive.com/primal`.
+Part of the Primal tools at `www.guppyinteractive.com/awaken/`.
 
 Living document. Last updated: 2026-10-12.
 
@@ -276,7 +276,7 @@ Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem 
 
 ## Product family
 
-`guppyinteractive.com/primal` is a small set of Primal companion tools, with the fight tracker first.
+`www.guppyinteractive.com/awaken/` is a small set of Primal companion tools, with the fight tracker first.
 
 | Tool | Path (draft) | Status |
 |---|---|---|
@@ -336,7 +336,7 @@ Keep the fight's data self-contained, with optional links (campaign id, hunter i
 
 ### Hosting
 
-- Served at **`guppyinteractive.com/primal`**. That page is a **catalog landing page** for a family of Primal tools (see Product family below). The fight tracker gets its own path, e.g. `guppyinteractive.com/primal/fight`.
+- Served at **`www.guppyinteractive.com/awaken/`**. That page is a **catalog landing page** for a family of Primal tools (see Product family below). Each tool has its own path: `/awaken/fight/`, `/awaken/hunters/`, `/awaken/campaign/`.
 - Hosted on **GitHub Pages** under the **guppyinteractive** org. A repo named `primal` in the org is served at `/primal` automatically once the org's Pages site uses the `guppyinteractive.com` custom domain.
 - No backend, no user accounts, no cost. Every group opens the same URL, and no group can see another's data.
 
@@ -408,7 +408,7 @@ Everything is saved only in the browser on each device, so the app itself has to
 - **Automatic copies on the device:** keep the last few versions of each campaign and hunter (e.g. one per session), so a bad update or a mistake can be rolled back. These copies don't survive the browser clearing its data; only exports do.
 
 **Our discipline**
-- **The address is permanent:** `guppyinteractive.com/primal` from the first public release. Never ship on a temporary address (8).
+- **The address is permanent:** `www.guppyinteractive.com/awaken/` from the first public release. Never ship on a temporary address (8).
 - **Versioned data:** every saved record carries a version number. Each app update upgrades old data step by step, with tests that use saved examples of every past version (9).
 - **Before upgrading, save a copy:** keep a copy of the data from before the upgrade until the new version has loaded it successfully.
 - **Backups always import:** an export from any past version still imports into the current one.
@@ -471,3 +471,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-12 | Use the sheets' component names (materials, plants, elements, 22 trophy monsters) as built-in labels. Players don't type them. Still no art, icons, logos, or rules text. |
 | 2026-10-12 | Plain labels on screen: "Next stance at health" (the card's progression value) and "[Monster] attack damage" (its damage value). Tapping "Next stance at N" on the board opens the stance editor. |
 | 2026-10-12 | Monster states: added Stunned, Unstoppable, and Acceleration (stacking, adds Struggle at upkeep). Monster-specific tracks (Hardening, Charge) and the states they cause stay out for now. One **+ Add state** picker replaces per-state buttons. |
+| 2026-10-12 | The address is `www.guppyinteractive.com/awaken/` (replaces /primal). Browser data is tied to this origin and path, so it must not move. |
