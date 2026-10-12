@@ -101,7 +101,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .btn:hover { border-color: var(--muted); }
-.btn:disabled { opacity: 0.4; cursor: default; }
+.btn:disabled, .toggle:disabled { opacity: 0.4; cursor: default; }
 .btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .btn.alert { border-color: var(--alert); color: var(--alert); }
 .btn.quiet { border-style: dashed; color: var(--muted); }

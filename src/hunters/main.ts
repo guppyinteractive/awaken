@@ -49,7 +49,7 @@ function render(): void {
       <span class="mid">${r}</span>
       <button class="toggle" aria-pressed="${h.skills[i][0]}" data-act="skill" data-row="${i}" data-tier="0">${r}1</button>
       <span class="note" aria-hidden="true">→</span>
-      <button class="toggle" aria-pressed="${h.skills[i][1]}" data-act="skill" data-row="${i}" data-tier="1">${r}2</button>
+      <button class="toggle" aria-pressed="${h.skills[i][1]}" data-act="skill" data-row="${i}" data-tier="1" ${h.skills[i][0] ? '' : 'disabled'}>${r}2</button>
     </div>`).join('');
 
   const resources = RESOURCE_KINDS.map((kind) => `
@@ -83,7 +83,7 @@ function render(): void {
           </section>
           <section class="box">
             <div class="label">Skill tree</div>
-            <p class="note">Mark each step when you've gained those cards.</p>
+            <p class="note">Mark each step when you've gained those cards. Step 2 opens once you have step 1.</p>
             <div class="skills">${skills}</div>
           </section>
           <section class="box">
@@ -114,7 +114,9 @@ root.addEventListener('click', (ev) => {
     case 'skill': {
       const row = h.skills[Number(t.dataset.row)];
       const tier = Number(t.dataset.tier);
+      if (tier === 1 && !row[0]) break; // step 2 needs step 1
       row[tier] = !row[tier];
+      if (!row[0]) row[1] = false; // giving up step 1 also clears step 2
       break;
     }
     case 'count': {
