@@ -1,23 +1,16 @@
 import '../shared/wire.css';
 import './hunters.css';
-import {
-  DISCLAIMER, KEYS, SLOT_COUNTS, esc, load, loadNames, save, slotName, topbar,
-  type SlotKind, type SlotNames,
-} from '../shared/util';
+import { DISCLAIMER, KEYS, esc, load, save, topbar } from '../shared/util';
+import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
-const KINDS: { kind: SlotKind; title: string }[] = [
-  { kind: 'materials', title: 'Materials' },
-  { kind: 'plants', title: 'Plants' },
-  { kind: 'elements', title: 'Elements' },
-];
 
 interface Hunter {
   player: string;
   hunterClass: string;
   /** Skill tree: [tier 1 gained, tier 2 gained] for rows A–E. */
   skills: [boolean, boolean][];
-  counts: Record<SlotKind, number[]>;
+  counts: Record<ResourceKind, number[]>;
   notes: string;
 }
 
@@ -32,9 +25,9 @@ function newHunter(): Hunter {
     hunterClass: '',
     skills: ROWS.map(() => [false, false] as [boolean, boolean]),
     counts: {
-      materials: Array(SLOT_COUNTS.materials).fill(0),
-      plants: Array(SLOT_COUNTS.plants).fill(0),
-      elements: Array(SLOT_COUNTS.elements).fill(0),
+      materials: RESOURCES.materials.names.map(() => 0),
+      plants: RESOURCES.plants.names.map(() => 0),
+      elements: RESOURCES.elements.names.map(() => 0),
     },
     notes: '',
   };
@@ -42,7 +35,6 @@ function newHunter(): Hunter {
 
 const root = document.getElementById('app')!;
 const state = load<Saved>(KEYS.hunters, { hunters: [newHunter()], current: 0 });
-let names: SlotNames = loadNames();
 
 const hunter = () => state.hunters[state.current];
 const persist = () => save(KEYS.hunters, state);
@@ -60,18 +52,20 @@ function render(): void {
       <button class="toggle" aria-pressed="${h.skills[i][1]}" data-act="skill" data-row="${i}" data-tier="1">${r}2</button>
     </div>`).join('');
 
-  const resources = KINDS.map(({ kind, title }) => `
+  const resources = RESOURCE_KINDS.map((kind) => `
     <section class="box">
-      <div class="label">${title}</div>
+      <div class="label">${RESOURCES[kind].title}</div>
       <div class="slots">
-        ${h.counts[kind].map((n, i) => `
+        ${RESOURCES[kind].names.map((name, i) => {
+          const n = h.counts[kind][i] ?? 0;
+          return `
           <div class="counter">
-            <input value="${esc(names[kind][i])}" placeholder="${esc(slotName({ ...names, [kind]: [] }, kind, i))}"
-              data-name="${kind}" data-i="${i}" aria-label="Name for ${esc(slotName(names, kind, i))}">
-            <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="-1" aria-label="Fewer" ${n ? '' : 'disabled'}>−</button>
+            <span class="name">${esc(name)}</span>
+            <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="-1" aria-label="One less ${esc(name)}" ${n ? '' : 'disabled'}>−</button>
             <span class="n">${n}</span>
-            <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="1" aria-label="More">+</button>
-          </div>`).join('')}
+            <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="1" aria-label="One more ${esc(name)}">+</button>
+          </div>`;
+        }).join('')}
       </div>
     </section>`).join('');
 
@@ -99,7 +93,6 @@ function render(): void {
         </div>
         <div class="col">
           ${resources}
-          <p class="note">Tap a name to rename a slot. Names are shared by every tool on this device.</p>
         </div>
       </div>
       ${state.hunters.length > 1 ? `<div class="row"><button class="btn alert small" data-act="remove">Remove this hunter</button></div>` : ''}
@@ -125,7 +118,7 @@ root.addEventListener('click', (ev) => {
       break;
     }
     case 'count': {
-      const list = h.counts[t.dataset.kind as SlotKind];
+      const list = h.counts[t.dataset.kind as ResourceKind];
       const i = Number(t.dataset.i);
       list[i] = Math.max(0, list[i] + Number(t.dataset.d));
       break;
@@ -142,10 +135,6 @@ root.addEventListener('input', (ev) => {
   if (el.dataset.field) {
     (hunter() as unknown as Record<string, string>)[el.dataset.field] = el.value;
     persist();
-  } else if (el.dataset.name) {
-    names = loadNames();
-    names[el.dataset.name as SlotKind][Number(el.dataset.i)] = el.value.trim();
-    save(KEYS.names, names);
   }
 });
 

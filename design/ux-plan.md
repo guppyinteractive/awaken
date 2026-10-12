@@ -225,7 +225,7 @@ TV hardware is still undecided (Chromecast / Google TV, a smart TV browser, or a
 
 ## What to track (from the sheets)
 
-Taken from photos of the hunter and campaign sheets, which are kept in `design/reference/` and git-ignored. Everything below is written in our own words. **No game names (monsters, materials, classes) go into the app or this repo.** The app ships empty slots and players type the names in, or we use generic labels.
+Taken from photos of the hunter and campaign sheets, which are kept in `design/reference/` and git-ignored. The app uses the **component names as printed on the sheets** (materials, plants, elements, trophy monsters) as plain labels, so players never type them in. It never uses game art, icons, logos, or rules text.
 
 ### Hunter tracker (one per player)
 
@@ -249,7 +249,7 @@ Out of scope for now: gear (weapon, helm, armor, item, potions) and anything fro
 | **Herbalist level** | 1–3 | Upgrades between fights |
 | **Forge level** | 1–3 | Upgrades between fights |
 | **Forge elements** | The same 9 element kinds as the hunter sheet. Each is yes/no: is that element's forge unlocked? | Between fights |
-| **Trophies** | One mark per monster defeated (22 on the sheet). The keeper adds monsters as they meet them, so no list of names ships with the app. | After winning a fight |
+| **Trophies** | One mark per monster defeated, for the sheet's 22 monsters. Each has a **Fight** shortcut that starts a fight with it. | After winning a fight |
 | **Quests** | Numbered 1–49, marked when done | During the campaign |
 | **Achievements** | Free-text list (about 7 lines on the sheet) | During the campaign |
 
@@ -258,15 +258,15 @@ Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem 
 ### Links between tools (keeper's device)
 
 - **Win a fight:** mark the trophy and offer to complete a chapter or quest.
-- **Start a fight from a campaign:** pick from the trophy list of monsters, so names are typed only once.
+- **Start a fight from a campaign:** pick from the trophy list of monsters. Fight setup also suggests the monster names as you type.
 - **Fight setup hint:** when starting a fight from a campaign, show the current difficulty tier (1–3, from the chapter) as a reminder of which stance and peril cards to use. It's only shown for reference; the app doesn't enforce anything.
 - Rewards like materials go to each hunter's own pool on that player's phone. Each player adds their own; there's no sync.
 
-### Handling names without shipping game content
+### Names and game content
 
-- Lists such as material kinds, element kinds, and monsters start as **numbered slots** ("Material 1 … 6"), and players **name them once**. Names are saved on the device and included in export and import.
-- A keeper could share their named lists to players' phones by QR code, so each group types them only once.
-- Icons are generic shapes or colors that players pick, never game art.
+- Materials (6), plants (6), elements (9), and the trophy monsters (22) ship with the app, **using the names from the sheets** (`src/shared/game.ts`).
+- Names are plain text labels. No game icons or art; any icons are our own generic shapes.
+- Rules hints stay in our own words with a page reference, never pasted text.
 
 ---
 
@@ -318,7 +318,7 @@ Every tool works well **upright and sideways**, on phones and tablets. Neither i
 - **Backup:** export everything, or a single hunter, campaign, or fight.
 - **Possible later:** a player shares a hunter summary (name, level) to the keeper's campaign by QR code. This is a one-time copy, not a sync.
 - **One look:** shared design tokens, type, and components, so the tools feel like one app.
-- **One footer disclaimer:** *Unofficial fan-made tool. Not affiliated with or endorsed by the publisher of Primal: The Awakening.* No publisher art, logos, or card text.
+- **One footer disclaimer:** *Unofficial fan-made tool. Not affiliated with or endorsed by the publisher of Primal: The Awakening.* No publisher art, icons, logos, or rules or card text. Component names from the sheets are used as plain labels.
 
 ### Design implication for the fight tracker
 
@@ -449,7 +449,7 @@ The only risk left is a player clearing their data with no recent backup. A sync
 | 2026-10-12 | All tools share one origin, one installable app, one data store, and one backup. |
 | 2026-10-12 | One app with roles. Players use the hunter tracker on their own phones; one keeper runs the campaign and fights. Each device keeps its own state, with no sync. |
 | 2026-10-12 | Every tool has full portrait and landscape layouts. Hunter tracker is portrait-first; fight tracker is landscape-first with a stacked portrait layout. |
-| 2026-10-12 | Sheet photos kept in git-ignored `design/reference/`. The app ships unnamed slots that players name, with no game names or art. |
+| 2026-10-12 | Sheet photos kept in git-ignored `design/reference/`. ~~The app ships unnamed slots that players name.~~ Replaced (see below). |
 | 2026-10-12 | Skill tree steps and forge elements are yes/no. Each hunter keeps their own resource pool. |
 | 2026-10-12 | Out of scope for now: the Hunter's Trial, gear, and the hunter board. |
 | 2026-10-12 | The chapter markers (1, 4, 8) set the difficulty tier. It's shown only as a reminder at fight setup. |
@@ -462,3 +462,4 @@ The only risk left is a player clearing their data with no recent backup. A sync
 | 2026-10-12 | Stack: Vite + TypeScript, no UI framework yet. Multi-page build (landing, fight, hunters, campaign) under base `/awaken/`. Fight rules are pure functions in `src/engine/` with Vitest tests. |
 | 2026-10-12 | Deploy: GitHub Actions tests, builds, and publishes `dist/` to Pages. Only the built app is served; design docs stay in the repo. |
 | 2026-10-12 | The wireframe saves to localStorage. The real app moves to versioned IndexedDB (see Data safety). |
+| 2026-10-12 | Use the sheets' component names (materials, plants, elements, 22 trophy monsters) as built-in labels. Players don't type them. Still no art, icons, logos, or rules text. |

@@ -166,8 +166,7 @@ a.btn { color: inherit; text-decoration: none; display: inline-flex; align-items
 .toggle[aria-pressed='true'] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
 .counter { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center; }
-.counter input { border: 1px dashed transparent; background: transparent; padding: 6px; min-width: 0; }
-.counter input:hover, .counter input:focus { border-color: var(--line); }
+.counter .name { padding: 6px 0; min-width: 0; overflow-wrap: anywhere; }
 .counter .n { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 /* ---- Exposure diagram ---- */

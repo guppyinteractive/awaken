@@ -2,7 +2,7 @@
 
 Unofficial fan-made companion tools for the board game *Primal: The Awakening*, served at **www.guppyinteractive.com/awaken/**.
 
-Not affiliated with or endorsed by the game's publisher. This repo contains no game text, art, or logos.
+Not affiliated with or endorsed by the game's publisher. Component names from the game's sheets are used as plain labels; the repo contains no game art, icons, logos, or rules text.
 
 - Design: [`design/ux-plan.md`](design/ux-plan.md) (living document)
 - Status: **wireframe**. Clickable grayscale layouts for the landing page and the fight, hunter, and campaign trackers.

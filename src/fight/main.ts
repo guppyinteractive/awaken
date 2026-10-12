@@ -4,6 +4,7 @@ import * as E from '../engine/fight';
 import { STATE_DEFS, STATE_IDS, type StateId } from '../engine/states';
 import { DISCLAIMER, KEYS, esc, keepAwake, load, save, topbar } from '../shared/util';
 import { sectorsSvg } from '../shared/sectors';
+import { MONSTERS } from '../shared/game';
 
 type Fight = E.Fight;
 
@@ -118,7 +119,8 @@ function setupView(): string {
       <form class="box sheet-inline" data-form="setup">
         <h1 class="mid">New fight</h1>
         <label class="field"><span class="label">Monster</span>
-          <input name="monster" value="${esc(monster)}" placeholder="Monster name" autocomplete="off"></label>
+          <input name="monster" value="${esc(monster)}" placeholder="Monster name" autocomplete="off" list="monsters"></label>
+        <datalist id="monsters">${MONSTERS.map((m) => `<option value="${esc(m)}"></option>`).join('')}</datalist>
         <fieldset class="field plain"><legend class="label">Players</legend>
           <div class="row">${[1, 2, 3, 4].map((n) => `
             <label class="toggle radio"><input type="radio" name="players" value="${n}" ${n === 2 ? 'checked' : ''}> ${n}</label>`).join('')}

@@ -31,36 +31,8 @@ export const KEYS = {
   fight: 'awaken.wire.fight.v1',
   hunters: 'awaken.wire.hunters.v1',
   campaign: 'awaken.wire.campaign.v1',
-  names: 'awaken.wire.names.v1',
   role: 'awaken.wire.role.v1',
 } as const;
-
-/** Names players give to the unnamed resource slots, shared across tools on a device. */
-export interface SlotNames {
-  materials: string[];
-  plants: string[];
-  elements: string[];
-}
-
-export const SLOT_COUNTS = { materials: 6, plants: 6, elements: 9 } as const;
-export type SlotKind = keyof typeof SLOT_COUNTS;
-export const SLOT_LABELS: Record<SlotKind, string> = {
-  materials: 'Material',
-  plants: 'Plant',
-  elements: 'Element',
-};
-
-export function loadNames(): SlotNames {
-  const names = load<SlotNames>(KEYS.names, { materials: [], plants: [], elements: [] });
-  for (const kind of Object.keys(SLOT_COUNTS) as SlotKind[]) {
-    names[kind] = Array.from({ length: SLOT_COUNTS[kind] }, (_, i) => names[kind]?.[i] ?? '');
-  }
-  return names;
-}
-
-export function slotName(names: SlotNames, kind: SlotKind, i: number): string {
-  return names[kind][i] || `${SLOT_LABELS[kind]} ${i + 1}`;
-}
 
 export function topbar(where: string): string {
   return `
