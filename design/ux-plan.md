@@ -122,8 +122,8 @@ Stances are **not** entered in advance. Monster level changes the stance progres
 
 - Label: automatic (I, II, III…), can be edited
 - Toughness: the printed number; the app multiplies it by players (default 2)
-- Progression value: the health at which this stance completes. Leave it blank if the stance lasts until the monster is defeated.
-- Damage value
+- **Next stance at health** (the card's progression value): the health at which this stance completes. Leave it blank if the stance lasts until the monster is defeated.
+- **[Monster] attack damage** (the card's damage value)
 - Exposed sides: tap sectors on the diagram to turn them red
 
 The current stance can be edited at any time to fix typos. Edits re-check wounds right away.
@@ -146,7 +146,7 @@ The current stance can be edited at any time to fix typos. Edits re-check wounds
 │   toughness 6 (3 × 2)      │           ╲ ▓▓ │ ▓▓ ╱           │
 │                            │              FRONT              │
 ├────────────────────────────┼─────────────────────────────────┤
-│ STRUGGLE ▓▓▓▓░░ 4 / 6      │  DAMAGE VALUE  4                │
+│ STRUGGLE ▓▓▓▓░░ 4 / 6      │  ATTACK DAMAGE 4                │
 │   Unleash at 6             │  [CONFUSED ⓘ] [VULNERABLE ⓘ]    │
 └────────────────────────────┴─────────────────────────────────┘
 ```
@@ -463,3 +463,4 @@ The only risk left is a player clearing their data with no recent backup. A sync
 | 2026-10-12 | Deploy: GitHub Actions tests, builds, and publishes `dist/` to Pages. Only the built app is served; design docs stay in the repo. |
 | 2026-10-12 | The wireframe saves to localStorage. The real app moves to versioned IndexedDB (see Data safety). |
 | 2026-10-12 | Use the sheets' component names (materials, plants, elements, 22 trophy monsters) as built-in labels. Players don't type them. Still no art, icons, logos, or rules text. |
+| 2026-10-12 | Plain labels on screen: "Next stance at health" (the card's progression value) and "[Monster] attack damage" (its damage value). Tapping "Next stance at N" on the board opens the stance editor. |

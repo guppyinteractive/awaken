@@ -181,7 +181,7 @@ function boardView(f: Fight): string {
 
       <section class="b-health box" data-act="hit" role="button" aria-label="Enter a hit">
         <div class="label">Health</div>
-        <div class="row"><span class="big">${f.health}</span><span class="note">${nextStance !== null ? `next stance at ${nextStance}` : 'until defeated'}</span></div>
+        <div class="row"><span class="big">${f.health}</span><button class="btn quiet small" data-act="edit-stance" aria-label="Edit next stance health">${nextStance !== null ? `Next stance at ${nextStance}` : 'Until defeated'} ✎</button></div>
         <div class="pips">${healthPips}</div>
         <div class="label spaced">Damage</div>
         <div class="row"><span class="mid">${f.damage} / ${Number.isFinite(t) ? t : '—'}</span>
@@ -194,7 +194,7 @@ function boardView(f: Fight): string {
       <section class="b-stance box">
         <div class="label">Exposed sides</div>
         ${stance ? sectorsSvg(stance.exposed, !f.outcome) : '<p class="note">No stance yet</p>'}
-        <div class="label spaced">Damage value</div>
+        <div class="label spaced">${esc(f.monster)} attack damage</div>
         <div class="big">${stance?.damageValue ?? '—'}</div>
       </section>
 
@@ -311,10 +311,10 @@ function stanceView(f: Fight, mode: 'reveal' | 'edit', d: E.Stance): string {
         <label class="field"><span class="label">Toughness (per player)</span>
           <input name="toughness" type="number" inputmode="numeric" min="1" value="${d.toughness}">
           <span class="note">× ${f.players} players = ${d.toughness * f.players}</span></label>
-        <label class="field"><span class="label">Progression value</span>
+        <label class="field"><span class="label">Next stance at health</span>
           <input name="progression" type="number" inputmode="numeric" min="0" value="${d.progression ?? ''}" placeholder="Blank = until defeated">
-          <span class="note ${badProgression ? 'alert-text' : ''}">Health now ${f.health}. ${badProgression ? 'Should be lower than current health.' : 'Stance ends when health reaches this.'}</span></label>
-        <label class="field"><span class="label">Damage value</span>
+          <span class="note ${badProgression ? 'alert-text' : ''}">Health now ${f.health}. ${badProgression ? 'Should be lower than current health.' : 'The stance card\'s progression value.'}</span></label>
+        <label class="field"><span class="label">${esc(f.monster)} attack damage</span>
           <input name="damageValue" type="number" inputmode="numeric" min="0" value="${d.damageValue}"></label>
       </div>
       <div class="field"><span class="label">Exposed sides (tap to toggle, front is at the bottom)</span>
