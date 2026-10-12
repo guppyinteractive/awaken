@@ -123,6 +123,11 @@ export function hasState(fight: Fight, id: StateId): boolean {
   return fight.states.includes(id);
 }
 
+/** How many of a state the monster has (stacking states like Acceleration). */
+export function stateCount(fight: Fight, id: StateId): number {
+  return fight.states.filter((s) => s === id).length;
+}
+
 export function canAddState(fight: Fight, id: StateId): boolean {
   return !(STATE_DEFS[id].single && hasState(fight, id));
 }
@@ -185,14 +190,15 @@ export function toggleExposed(fight: Fight, sector: Sector): Result {
   return { fight: f, events: [] };
 }
 
-/** Monster upkeep: +1 struggle per player, then the Unleash check. */
+/** Monster upkeep: +1 struggle per player and per Acceleration token, then the Unleash check. */
 export function monsterUpkeep(fight: Fight): Result {
   const f = clone(fight);
   const events: FightEvent[] = [];
   if (f.outcome) return { fight: f, events };
   f.upkeepDone = true;
-  events.push({ kind: 'upkeep', gained: f.players });
-  gainStruggleInto(f, f.players, events);
+  const gained = f.players + stateCount(f, 'acceleration');
+  events.push({ kind: 'upkeep', gained });
+  gainStruggleInto(f, gained, events);
   return { fight: f, events };
 }
 
@@ -219,10 +225,11 @@ export function addState(fight: Fight, id: StateId): Result {
   return { fight: f, events: [{ kind: 'state-added', id }] };
 }
 
+/** Remove one of a state (one token, for stacking states). */
 export function removeState(fight: Fight, id: StateId): Result {
   const f = clone(fight);
   if (!hasState(f, id)) return { fight: f, events: [] };
-  f.states = f.states.filter((s) => s !== id);
+  f.states.splice(f.states.lastIndexOf(id), 1);
   return { fight: f, events: [{ kind: 'state-removed', id, reason: 'removed' }] };
 }
 

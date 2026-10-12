@@ -69,6 +69,7 @@
 .hit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .hit-grid .btn { min-height: 64px; }
 .menu-list { display: grid; gap: 8px; }
+.state-pick { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .log { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-height: 50vh; overflow: auto; }
 .stance-form { display: grid; gap: 12px; }
 .stance-form .sectors { max-width: 180px; }
@@ -94,4 +95,6 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
   .b-stance .sectors { max-width: 28vh; }
   .b-actions { padding-block: 4px calc(4px + env(safe-area-inset-bottom, 0px)); }
   .b-actions .btn, .board .btn, .board .chip { min-height: 40px; padding: 4px 10px; }
+  .board .chip { min-height: 32px; font-size: 13px; }
+  .b-states .row { gap: 4px; }
 }

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   addState, blankStance, canAddState, createFight, dealDamage, endRound, gainStruggle,
-  inflictWound, loseStruggle, monsterUpkeep, revealStance, toughness, type Fight, type Stance,
+  inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
+  type Fight, type Stance,
 } from './fight';
 
 function stance(toughness: number, progression: number | null, damageValue = 3): Stance {
@@ -123,6 +124,29 @@ describe('monster states', () => {
     expect(r.fight.round).toBe(2);
     expect(r.fight.states).toEqual([]);
     expect(r.fight.upkeepDone).toBe(false);
+  });
+
+  it('stunned ends at the end of the round; unstoppable stays until removed', () => {
+    let f = fightWith(2, 10, stance(2, 7));
+    f = addState(f, 'stunned').fight;
+    expect(canAddState(f, 'stunned')).toBe(false);
+    f = addState(f, 'unstoppable').fight;
+    f = endRound(f).fight;
+    expect(f.states).toEqual(['unstoppable']);
+    f = removeState(f, 'unstoppable').fight;
+    expect(f.states).toEqual([]);
+  });
+
+  it('acceleration stacks, adds struggle at upkeep, and is removed one token at a time', () => {
+    let f = fightWith(2, 10, stance(2, 7));
+    f = addState(f, 'acceleration').fight;
+    f = addState(f, 'acceleration').fight;
+    expect(stateCount(f, 'acceleration')).toBe(2);
+    const r = monsterUpkeep(f); // 2 players + 2 tokens
+    expect(r.events).toContainEqual({ kind: 'upkeep', gained: 4 });
+    expect(r.fight.struggle).toBe(4);
+    f = removeState(endRound(r.fight).fight, 'acceleration').fight;
+    expect(stateCount(f, 'acceleration')).toBe(1);
   });
 
   it('times out after round 10', () => {

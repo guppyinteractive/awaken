@@ -85,25 +85,29 @@ Struggle is added at upkeep instead of at end of round because the order matters
 
 ### Monster states
 
-**Built now: Confused and Vulnerable.** Others can be added later the same way.
+**Built now:** every monster state in the rulebook glossary that doesn't come from a monster-specific track: Confused, Vulnerable, Stunned, Unstoppable, and Acceleration.
 
 Each state has:
 - **When it ends:** *end of this round*, *start of next round*, or *only when removed*.
-- **Limit:** whether the monster can have more than one at a time.
+- **Limit:** one at a time, or stacking tokens.
 - **Hint:** a short summary in our own words, plus the rulebook page. Tap the chip to see it.
 
 | State | Ends | Limit | What the app does |
 |---|---|---|---|
-| **Confused** | Start of next round, or earlier when it cancels a boost | One | Chip on the board. Tap → hint, or **Remove** (it was used to cancel a boost). |
-| **Vulnerable** | End of this round, or earlier when used | One. Can't be added while the monster already has it. | Chip on the board. Hit entry offers **"×2, use Vulnerable"**, which doubles that one hit and removes the chip. It can't be used on the hit that applied it. |
+| **Confused** (p. 107) | Start of next round, or earlier when it cancels a boost | One | Chip on the board. Tap → hint, or **Remove** (it was used to cancel a boost). |
+| **Vulnerable** (p. 114) | End of this round, or earlier when used | One | Hit entry offers **"×2, use Vulnerable"**, which doubles that one hit and removes the chip. It can't be used on the hit that applied it. |
+| **Stunned** (p. 113) | End of this round | One | Chip and hint only (the blocked behavior card and the bonus attack happen on the table). |
+| **Unstoppable** (p. 114) | Only when removed (the causing card sets how long) | One | Chip and hint. The +1 Struggle per triggered behavior is entered with Struggle +. |
+| **Acceleration** (p. 106) | Only when removed | Stacks (chip shows ×N) | Monster upkeep adds 1 Struggle per token on top of 1 per player. The chip's sheet has −1 / +1. |
 
+- **Adding:** one **+ Add state** button opens a picker that lists each state with when it ends; states already on (and not stacking) are disabled.
 - Players use and remove states whenever they like during the round. End Round only clears whatever is left.
-- **Later candidates** (for the hints list):
-  - **Stun**: one behavior card can't trigger this round.
-  - **Hardened**: see below.
-  - **Unstoppable**: +1 struggle each time a behavior triggers.
-  - Blind sits on peril cards, not the monster, so it's probably out of scope.
-- **Hardened changes the damage rules:** after each wound, *all* remaining damage is removed, so nothing carries over. Hardened monsters also can't be stunned, confused, or made vulnerable. If we add Hardened, the damage logic and the state buttons need to respect it.
+- **Left out on purpose:**
+  - **Hardened** (p. 109). It only happens through the Hardening track (Toramat, Dygorax, p. 95), and tracks stay off the board for now. Note for later: it stops damage carrying over and blocks Stun, Confuse, and Vulnerable.
+  - **Charge** (Jekoros's track, p. 95).
+  - **Blind** sits on peril cards, not the monster.
+  - Stance-card keywords **Resistant** and **Shield X** (p. 111–112) change damage but belong to the stance, not a state. Candidates for the stance form.
+  - The monster's **bonus damage tokens** (+X attack damage for a card-defined time, p. 104).
 
 ### Hint text and IP
 
@@ -194,7 +198,7 @@ There is one page, and its controls are part of the board. Whatever is on screen
 - **Quiet styling:** controls are low-contrast and grouped along the edges, so the numbers stay the focus from across the room.
 - **Main actions** sit in a slim bottom bar: **Monster upkeep (+N)**, **End round**, **Undo**.
 - **Hit entry:** a small popover with +1 to +6, a custom amount with **Deal**, **×2 (use Vulnerable)** when the monster is vulnerable, and −1 for corrections. It closes after a hit, so the TV shows the result.
-- **States:** **+ Confused** and **+ Vulnerable** buttons. Each is disabled when the monster already has that state, or when a state like Hardened blocks it.
+- **States:** a **+ Add state** button opens the state picker. A state is disabled there when the monster already has it (unless it stacks).
 - **Stance form:** a full-screen panel, which also shows on the TV. That's fine, because the whole table is waiting on the stance change anyway.
 - **Less frequent actions** go in a menu: New fight, Edit stance, **+1 wound (card effect)**, manual health +/−, and the log.
 - **Log:** the last ~15 actions, e.g. "Hit 13 → 2 wounds, Stance II, 5 carried over". It's kept in the menu, not on the board.
@@ -425,7 +429,7 @@ The only risk left is a player clearing their data with no recent backup. A sync
 
 Tracked as decision issues in Beads (`bd list --type=decision`). Record the answer here and in the decision log when one closes.
 
-- [ ] Do the extra tracks some monsters have (e.g. charge or hardening tracks) belong on the board? Hardened changes the damage rules (see Monster states).
+- [x] Do the extra tracks some monsters have (charge, hardening) belong on the board? Not for now; states that come from tracks (Hardened) are left out too.
 - [x] Is `guppyinteractive.com` already pointed at GitHub Pages? Yes: www.guppyinteractive.com/awaken/ is live.
 - [ ] Does the keeper role need a name in the app ("Keeper", "Lead", "Host")?
 - [ ] Names and icons for the suite and the fight tracker. ("Awaken" is the repo and folder name.)
@@ -466,3 +470,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-12 | The wireframe saves to localStorage. The real app moves to versioned IndexedDB (see Data safety). |
 | 2026-10-12 | Use the sheets' component names (materials, plants, elements, 22 trophy monsters) as built-in labels. Players don't type them. Still no art, icons, logos, or rules text. |
 | 2026-10-12 | Plain labels on screen: "Next stance at health" (the card's progression value) and "[Monster] attack damage" (its damage value). Tapping "Next stance at N" on the board opens the stance editor. |
+| 2026-10-12 | Monster states: added Stunned, Unstoppable, and Acceleration (stacking, adds Struggle at upkeep). Monster-specific tracks (Hardening, Charge) and the states they cause stay out for now. One **+ Add state** picker replaces per-state buttons. |

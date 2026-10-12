@@ -14,6 +14,7 @@ type Panel =
   | { kind: 'menu' }
   | { kind: 'log' }
   | { kind: 'state'; id: StateId }
+  | { kind: 'add-state' }
   | { kind: 'stance'; mode: 'reveal' | 'edit'; draft: E.Stance };
 
 interface Saved {
@@ -160,10 +161,10 @@ function boardView(f: Fight): string {
     ? f.outcome === 'defeated' ? 'Monster defeated' : "Time's up"
     : f.stancePending ? 'Stance change' : f.upkeepDone ? "Hunters' turns" : 'Heal, then monster upkeep';
 
-  const chips = f.states.map((id) =>
-    `<button class="chip" data-act="state" data-id="${id}">${esc(STATE_DEFS[id].name)} <span class="i" aria-hidden="true">i</span></button>`).join('');
-  const addButtons = STATE_IDS.map((id) =>
-    `<button class="btn quiet small" data-act="add-state" data-id="${id}" ${E.canAddState(f, id) && !f.outcome ? '' : 'disabled'}>+ ${esc(STATE_DEFS[id].name)}</button>`).join('');
+  const chips = [...new Set(f.states)].map((id) => {
+    const n = E.stateCount(f, id);
+    return `<button class="chip" data-act="state" data-id="${id}">${esc(STATE_DEFS[id].name)}${n > 1 ? ` ×${n}` : ''} <span class="i" aria-hidden="true">i</span></button>`;
+  }).join('');
 
   return `
     <div class="board">
@@ -210,13 +211,12 @@ function boardView(f: Fight): string {
 
       <section class="b-states box">
         <div class="label">Monster states</div>
-        <div class="row">${chips || '<span class="note">None</span>'}</div>
-        <div class="row">${addButtons}</div>
+        <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" ${f.outcome ? 'disabled' : ''}>+ Add state</button></div>
       </section>
 
       <nav class="b-actions">
         <button class="btn ${f.upkeepDone ? '' : 'primary'}" data-act="upkeep" ${f.outcome || f.stancePending ? 'disabled' : ''}>
-          ${f.upkeepDone ? 'Upkeep done' : `Monster upkeep (+${f.players})`}</button>
+          ${f.upkeepDone ? 'Upkeep done' : `Monster upkeep (+${f.players + E.stateCount(f, 'acceleration')})`}</button>
         <button class="btn" data-act="end-round" ${f.outcome || f.stancePending ? 'disabled' : ''}>End round</button>
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo</button>
         <button class="btn" data-act="menu">Menu</button>
@@ -245,7 +245,8 @@ function panelView(f: Fight): string {
     case 'hit': return hitView(f);
     case 'menu': return menuView();
     case 'log': return sheet('Log', `<ol class="log">${log.map((l) => `<li>${esc(l)}</li>`).join('') || '<li class="note">Nothing yet</li>'}</ol>`);
-    case 'state': return stateView(panel.id);
+    case 'state': return stateView(f, panel.id);
+    case 'add-state': return addStateView(f);
     case 'stance': return stanceView(f, panel.mode, panel.draft);
   }
 }
@@ -291,13 +292,31 @@ function menuView(): string {
     </div>`);
 }
 
-function stateView(id: StateId): string {
+function addStateView(f: Fight): string {
+  const ends = (id: StateId) => ({ 'end-of-round': 'ends this round', 'start-of-next-round': 'ends next round', manual: 'until removed' })[STATE_DEFS[id].ends];
+  return sheet('Add a state', `
+    <div class="menu-list">${STATE_IDS.map((id) => {
+      const n = E.stateCount(f, id);
+      const has = STATE_DEFS[id].single && n > 0;
+      return `<button class="btn state-pick" data-act="add-state" data-id="${id}" ${E.canAddState(f, id) ? '' : 'disabled'}>
+        <strong>${esc(STATE_DEFS[id].name)}</strong>
+        <span class="note">${has ? 'already on' : n ? `${n} on · stacks` : ends(id)}</span></button>`;
+    }).join('')}</div>`);
+}
+
+function stateView(f: Fight, id: StateId): string {
   const def = STATE_DEFS[id];
   const ends = def.ends === 'end-of-round' ? 'End of this round' : def.ends === 'start-of-next-round' ? 'Start of next round' : 'Only when removed';
+  const n = E.stateCount(f, id);
+  const controls = def.single
+    ? `<button class="btn alert" data-act="remove-state" data-id="${id}">Remove ${esc(def.name)}</button>`
+    : `<span class="note grow">Tokens: <strong>${n}</strong></span>
+       <button class="btn small" data-act="remove-state" data-id="${id}" aria-label="Remove one ${esc(def.name)} token">−1</button>
+       <button class="btn small" data-act="add-state" data-id="${id}" aria-label="Add one ${esc(def.name)} token">+1</button>`;
   return sheet(def.name, `
     <p>${esc(def.hint)}</p>
     <p class="note">Ends: ${ends} · Rulebook p. ${def.page}</p>
-    <div class="row"><button class="btn alert" data-act="remove-state" data-id="${id}">Remove ${esc(def.name)}</button></div>`);
+    <div class="row">${controls}</div>`);
 }
 
 function stanceView(f: Fight, mode: 'reveal' | 'edit', d: E.Stance): string {
@@ -407,8 +426,15 @@ root.addEventListener('click', (ev) => {
     case 'end-round': apply(E.endRound(f)); break;
     case 'struggle-up': apply(E.gainStruggle(f, 1)); break;
     case 'struggle-down': apply(E.loseStruggle(f, 1)); break;
-    case 'add-state': apply(E.addState(f, id!)); break;
-    case 'remove-state': panel = null; apply(E.removeState(f, id!)); break;
+    case 'pick-state': panel = { kind: 'add-state' }; render(); break;
+    case 'add-state':
+      if (panel?.kind === 'add-state') panel = null;
+      apply(E.addState(f, id!));
+      break;
+    case 'remove-state':
+      if (STATE_DEFS[id!].single || E.stateCount(f, id!) <= 1) panel = null;
+      apply(E.removeState(f, id!));
+      break;
     case 'undo': undoLast(); break;
   }
 });
