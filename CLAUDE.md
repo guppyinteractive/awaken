@@ -52,18 +52,31 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
-
 ```bash
-# Example:
-# npm install
-# npm test
+npm install
+npm run dev      # dev server on the local network (--host)
+npm test         # rules engine tests (Vitest)
+npm run build    # type-check and build to dist/
 ```
+
+Pushing `main` deploys: `.github/workflows/deploy.yml` tests, builds, and
+publishes `dist/` to GitHub Pages at www.guppyinteractive.com/awaken/.
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+Static multi-page PWA (Vite + TypeScript, no UI framework, no backend). Each
+device keeps its own state; there is no sync or accounts.
+
+- `src/engine/` — fight rules as pure functions returning `{fight, events}`, with tests.
+- `src/landing/`, `src/fight/`, `src/hunters/`, `src/campaign/` — one folder per page;
+  each renders with `innerHTML` and handles clicks by `data-act` delegation.
+- `src/shared/` — wireframe styles, storage helpers, component names (`game.ts`).
+- `design/ux-plan.md` — the living UX plan. Record decisions in its decision log.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- Game content: component names from the sheets are fine as plain labels. Never commit
+  game art, icons, logos, or rulebook/card text; state hints are in our own words with
+  a page reference. `rules/` and `design/reference/` are git-ignored and must stay so.
+- Keep the "Unofficial fan-made tool" disclaimer on every page.
+- Every page must work in portrait and landscape at phone width with no horizontal scroll.

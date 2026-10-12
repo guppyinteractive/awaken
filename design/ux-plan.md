@@ -423,8 +423,10 @@ The only risk left is a player clearing their data with no recent backup. A sync
 
 ## Open questions
 
+Tracked as decision issues in Beads (`bd list --type=decision`). Record the answer here and in the decision log when one closes.
+
 - [ ] Do the extra tracks some monsters have (e.g. charge or hardening tracks) belong on the board? Hardened changes the damage rules (see Monster states).
-- [ ] Is `guppyinteractive.com` already pointed at GitHub Pages, or does DNS need setting up?
+- [x] Is `guppyinteractive.com` already pointed at GitHub Pages? Yes: www.guppyinteractive.com/awaken/ is live.
 - [ ] Does the keeper role need a name in the app ("Keeper", "Lead", "Host")?
 - [ ] Names and icons for the suite and the fight tracker. ("Awaken" is the repo and folder name.)
 - [ ] Should the TV show anything about hunters, such as KO count?

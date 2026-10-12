@@ -9,3 +9,4 @@ dist/
 .dolt/
 *.db
 .beads-credential-key
+.beads.gate.lock
