@@ -3,86 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Awaken</title>
-<meta name="description" content="Unofficial companion tools for the board game Primal: The Awakening. Coming soon.">
-<style>
-  :root {
-    --bg: #f4f1ec;
-    --fg: #1f1a17;
-    --muted: #6b625b;
-    --accent: #b3261e;
-    --rule: #d9d2c8;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161311;
-      --fg: #ece6de;
-      --muted: #9a9087;
-      --accent: #e0574d;
-      --rule: #2e2825;
-      color-scheme: dark;
-    }
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    display: grid;
-    place-items: center;
-    padding: 24px 16px;
-  }
-  main { max-width: 36rem; display: grid; gap: 1.25rem; }
-  .mark { width: 56px; height: 56px; }
-  h1 {
-    margin: 0;
-    font-size: clamp(2.5rem, 8vw, 4rem);
-    line-height: 1;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  p { margin: 0; }
-  .lede { font-size: 1.125rem; }
-  .status {
-    display: inline-block;
-    padding: 0.2rem 0.6rem;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    border-radius: 999px;
-    font-size: 0.8rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    justify-self: start;
-  }
-  footer {
-    border-top: 1px solid var(--rule);
-    padding-top: 1rem;
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  a { color: inherit; }
-</style>
+<meta name="description" content="Unofficial companion tools for the board game Primal: The Awakening.">
 </head>
 <body>
-<main>
-  <!-- Exposure-diagram motif: a circle in four sectors, front at the bottom, exposed sectors in red -->
-  <svg class="mark" viewBox="0 0 100 100" aria-hidden="true">
-    <g stroke="var(--bg)" stroke-width="4">
-      <path d="M50 50 L14.6 14.6 A50 50 0 0 1 85.4 14.6 Z" fill="var(--fg)"/>
-      <path d="M50 50 L85.4 14.6 A50 50 0 0 1 85.4 85.4 Z" fill="var(--accent)"/>
-      <path d="M50 50 L85.4 85.4 A50 50 0 0 1 14.6 85.4 Z" fill="var(--accent)"/>
-      <path d="M50 50 L14.6 85.4 A50 50 0 0 1 14.6 14.6 Z" fill="var(--fg)"/>
-    </g>
-  </svg>
-  <h1>Awaken</h1>
-  <span class="status">Coming soon</span>
-  <p class="lede">Companion tools for <em>Primal: The Awakening</em>: a monster fight tracker you can cast to the TV, plus hunter and campaign trackers for your phone.</p>
-  <footer>
-    Unofficial fan-made tool. Not affiliated with or endorsed by the publisher of <em>Primal: The Awakening</em>.
-    From <a href="https://www.guppyinteractive.com/">Guppy Interactive</a>.
-  </footer>
-</main>
+<div id="app"></div>
+<script type="module" src="/src/landing/main.ts"></script>
 </body>
 </html>

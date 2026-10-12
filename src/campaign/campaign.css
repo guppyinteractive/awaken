@@ -1,0 +1,21 @@
+.cols { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 1fr); }
+.col { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
+.status { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; margin-top: 8px; }
+.chapter { position: relative; }
+.chapter.current { box-shadow: 0 0 0 2px var(--ink); }
+.tier-mark { position: absolute; top: -8px; left: -4px; font-size: 10px; background: var(--paper); border: 1px solid var(--muted); border-radius: 3px; padding: 0 3px; color: var(--muted); }
+.upgrades { display: grid; gap: 12px; }
+.trophies { display: grid; gap: 6px; margin: 8px 0; }
+.trophy { display: flex; gap: 8px; align-items: center; }
+.quests { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; margin-top: 8px; }
+.quest { padding: 4px; font-variant-numeric: tabular-nums; }
+.grow { flex: 1; min-width: 0; }
+.campaign input { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 10px; min-height: 44px; }
+ul.plain { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.campaign a.btn { text-decoration: none; display: inline-flex; align-items: center; color: inherit; }
+.campaign a.btn.primary { color: var(--paper); }
+
+@media (orientation: landscape) and (min-width: 700px), (min-width: 900px) {
+  .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}

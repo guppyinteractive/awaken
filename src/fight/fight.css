@@ -1,0 +1,97 @@
+/* Fight board: landscape for casting, stacked in portrait. */
+.board {
+  display: grid;
+  gap: var(--gap);
+  padding: var(--gap) 16px;
+  padding-bottom: calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'head'
+    'health'
+    'struggle'
+    'stance'
+    'states'
+    'actions';
+}
+.b-head { grid-area: head; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+.b-health { grid-area: health; cursor: pointer; display: grid; gap: 6px; align-content: start; }
+.b-stance { grid-area: stance; display: grid; gap: 6px; justify-items: start; align-content: start; }
+.b-struggle { grid-area: struggle; display: grid; gap: 6px; align-content: start; }
+.b-states { grid-area: states; display: grid; gap: 8px; align-content: start; }
+.b-round { display: grid; gap: 4px; }
+.b-actions {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 1fr 1fr;
+  gap: 8px;
+}
+.b-health:hover { border-color: var(--muted); }
+.spaced { margin-top: 8px; }
+.spacer { flex: 1; }
+.grow { flex: 1; min-width: 0; }
+.tap-hint { font-size: 12px; }
+.alert-text { color: var(--alert); margin: 0; }
+
+/* Portrait: exposed sides and damage value sit side by side. */
+.b-stance { grid-template-columns: auto 1fr; column-gap: 16px; align-items: center; }
+.b-stance > .label:first-child { grid-column: 1 / -1; }
+.b-stance .sectors { max-width: 140px; grid-row: span 2; }
+.b-stance .spaced { margin-top: 0; }
+
+/* Keep the action bar on screen (and in reach of a thumb on phones). */
+.b-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--paper);
+  padding-block: 8px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Landscape: the TV layout. Fills the screen, no page scroll on most displays. */
+@media (orientation: landscape) and (min-width: 700px) {
+  html, body { height: 100%; }
+  .board {
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      'head head'
+      'health stance'
+      'struggle states'
+      'actions actions';
+  }
+  .b-stance { grid-template-columns: minmax(0, 1fr) auto; }
+  .b-stance .sectors { max-width: min(30vh, 260px); }
+  .b-actions { grid-template-columns: 2fr 1.4fr 1fr 1fr; }
+}
+
+/* Panels */
+.hit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.hit-grid .btn { min-height: 64px; }
+.menu-list { display: grid; gap: 8px; }
+.log { margin: 0; padding-left: 20px; display: grid; gap: 4px; max-height: 50vh; overflow: auto; }
+.stance-form { display: grid; gap: 12px; }
+.stance-form .sectors { max-width: 180px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+/* Setup */
+.setup { max-width: 520px; }
+.setup form { display: grid; gap: 12px; }
+.setup h1 { margin: 0; }
+fieldset.plain { border: 0; padding: 0; margin: 0; }
+.toggle.radio { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Phones held sideways: everything on one screen, smaller chrome. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .board { gap: 6px; padding: 6px 12px; min-height: 100dvh; }
+  .board .box { padding: 8px 10px; }
+  .board .big { font-size: 13vh; }
+  .board .mid { font-size: 6vh; }
+  .board .label { font-size: 10px; margin-bottom: 2px; }
+  .board .bar { height: 10px; }
+  .board .pip { width: 3.4vh; }
+  .tap-hint, .b-head .note, .b-states .label { display: none; }
+  .b-stance .sectors { max-width: 28vh; }
+  .b-actions { padding-block: 4px calc(4px + env(safe-area-inset-bottom, 0px)); }
+  .b-actions .btn, .board .btn, .board .chip { min-height: 40px; padding: 4px 10px; }
+}

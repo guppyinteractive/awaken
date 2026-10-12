@@ -2,3 +2,5 @@
 design/reference/
 rules/
 *:Zone.Identifier
+node_modules/
+dist/

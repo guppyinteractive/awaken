@@ -1,0 +1,343 @@
+// Fight rules engine. Pure functions: each action takes a Fight and returns a
+// new Fight plus the events it caused (for announcements and the log).
+// Rulebook references: damage and wounds p. 23, struggle p. 18, glossary pp. 104-116.
+
+import { STATE_DEFS, type StateId } from './states';
+
+export const MAX_ROUNDS = 10;
+export const DEFAULT_HEALTH = 10;
+export const UNLEASH_PER_PLAYER = 3;
+
+/** Sectors in exposure-diagram order. The front is drawn at the bottom. */
+export const SECTORS = ['front', 'right', 'rear', 'left'] as const;
+export type Sector = (typeof SECTORS)[number];
+
+export interface Stance {
+  /** "I", "II", "III"... editable. */
+  label: string;
+  /** Printed toughness number; multiplied by the player count. */
+  toughness: number;
+  /** Health at which this stance completes. null = lasts until the monster is defeated. */
+  progression: number | null;
+  /** The stance's damage value (what hunters suffer on an Unleash). */
+  damageValue: number;
+  exposed: Record<Sector, boolean>;
+}
+
+export type Outcome = 'defeated' | 'timeout';
+
+export interface Fight {
+  version: 1;
+  monster: string;
+  players: number;
+  startingHealth: number;
+  /** Campaign difficulty tier, shown only as a reminder. */
+  tier: number | null;
+  health: number;
+  /** Damage sitting on the current stance card (or carried over while a stance is pending). */
+  damage: number;
+  /** Stances revealed so far; the last one is current. */
+  stances: Stance[];
+  /** True when the next stance must be entered before play continues. */
+  stancePending: boolean;
+  struggle: number;
+  round: number;
+  upkeepDone: boolean;
+  states: StateId[];
+  outcome: Outcome | null;
+}
+
+export type FightEvent =
+  | { kind: 'hit'; amount: number; doubled: boolean }
+  | { kind: 'wound'; health: number; source: 'damage' | 'effect' }
+  | { kind: 'stance-complete'; label: string; carried: number }
+  | { kind: 'stance-revealed'; label: string }
+  | { kind: 'defeated' }
+  | { kind: 'struggle'; amount: number; total: number }
+  | { kind: 'unleash'; damageValue: number; resetTo: number }
+  | { kind: 'upkeep'; gained: number }
+  | { kind: 'state-added'; id: StateId }
+  | { kind: 'state-removed'; id: StateId; reason: 'used' | 'removed' | 'expired' }
+  | { kind: 'round'; round: number }
+  | { kind: 'timeout' }
+  | { kind: 'correction'; text: string };
+
+export interface Result {
+  fight: Fight;
+  events: FightEvent[];
+}
+
+export interface NewFight {
+  monster: string;
+  players: number;
+  startingHealth?: number;
+  tier?: number | null;
+}
+
+export function createFight(opts: NewFight): Fight {
+  const health = opts.startingHealth ?? DEFAULT_HEALTH;
+  return {
+    version: 1,
+    monster: opts.monster.trim() || 'Monster',
+    players: clamp(Math.round(opts.players), 1, 4),
+    startingHealth: health,
+    tier: opts.tier ?? null,
+    health,
+    damage: 0,
+    stances: [],
+    stancePending: true,
+    struggle: 0,
+    round: 1,
+    upkeepDone: false,
+    states: [],
+    outcome: null,
+  };
+}
+
+export function blankStance(fight: Fight): Stance {
+  const prev = currentStance(fight);
+  return {
+    label: romanNumeral(fight.stances.length + 1),
+    toughness: prev?.toughness ?? 2,
+    progression: null,
+    damageValue: prev?.damageValue ?? 0,
+    exposed: { front: false, right: false, rear: false, left: false },
+  };
+}
+
+export function currentStance(fight: Fight): Stance | undefined {
+  return fight.stances[fight.stances.length - 1];
+}
+
+/** Damage needed for one wound in the current stance. */
+export function toughness(fight: Fight): number {
+  const stance = currentStance(fight);
+  return stance ? stance.toughness * fight.players : Infinity;
+}
+
+export function unleashAt(fight: Fight): number {
+  return UNLEASH_PER_PLAYER * fight.players;
+}
+
+export function hasState(fight: Fight, id: StateId): boolean {
+  return fight.states.includes(id);
+}
+
+export function canAddState(fight: Fight, id: StateId): boolean {
+  return !(STATE_DEFS[id].single && hasState(fight, id));
+}
+
+// ---- Actions -------------------------------------------------------------
+
+/** A hit for `amount` damage, optionally spending Vulnerable to double it. */
+export function dealDamage(fight: Fight, amount: number, useVulnerable = false): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (f.outcome || amount <= 0) return { fight: f, events };
+  const doubled = useVulnerable && hasState(f, 'vulnerable');
+  if (doubled) {
+    f.states = f.states.filter((s) => s !== 'vulnerable');
+    events.push({ kind: 'state-removed', id: 'vulnerable', reason: 'used' });
+  }
+  const total = doubled ? amount * 2 : amount;
+  f.damage += total;
+  events.push({ kind: 'hit', amount: total, doubled });
+  resolveWounds(f, events);
+  return { fight: f, events };
+}
+
+/** A card effect that inflicts a wound directly, without damage. */
+export function inflictWound(fight: Fight): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (f.outcome) return { fight: f, events };
+  woundOnce(f, events, 'effect');
+  if (!f.outcome && !f.stancePending) resolveWounds(f, events);
+  return { fight: f, events };
+}
+
+/** Reveal the next stance (or the first one). Carried-over damage is then applied. */
+export function revealStance(fight: Fight, stance: Stance): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  f.stances.push(clone(stance));
+  f.stancePending = false;
+  events.push({ kind: 'stance-revealed', label: stance.label });
+  resolveWounds(f, events);
+  return { fight: f, events };
+}
+
+/** Fix the current stance (typos). Re-checks wounds against the new toughness. */
+export function editStance(fight: Fight, stance: Stance): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (!f.stances.length) return { fight: f, events };
+  f.stances[f.stances.length - 1] = clone(stance);
+  events.push({ kind: 'correction', text: `Edited stance ${stance.label}` });
+  resolveWounds(f, events);
+  return { fight: f, events };
+}
+
+export function toggleExposed(fight: Fight, sector: Sector): Result {
+  const f = clone(fight);
+  const stance = currentStance(f);
+  if (stance) stance.exposed[sector] = !stance.exposed[sector];
+  return { fight: f, events: [] };
+}
+
+/** Monster upkeep: +1 struggle per player, then the Unleash check. */
+export function monsterUpkeep(fight: Fight): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (f.outcome) return { fight: f, events };
+  f.upkeepDone = true;
+  events.push({ kind: 'upkeep', gained: f.players });
+  gainStruggleInto(f, f.players, events);
+  return { fight: f, events };
+}
+
+/** The monster gains struggle (Unleash is checked only on a gain). */
+export function gainStruggle(fight: Fight, amount = 1): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (f.outcome) return { fight: f, events };
+  gainStruggleInto(f, amount, events);
+  return { fight: f, events };
+}
+
+/** Struggle spent on a boost or removed by a card. Never triggers an Unleash. */
+export function loseStruggle(fight: Fight, amount = 1): Result {
+  const f = clone(fight);
+  f.struggle = Math.max(0, f.struggle - amount);
+  return { fight: f, events: [{ kind: 'struggle', amount: -amount, total: f.struggle }] };
+}
+
+export function addState(fight: Fight, id: StateId): Result {
+  const f = clone(fight);
+  if (!canAddState(f, id) || f.outcome) return { fight: f, events: [] };
+  f.states.push(id);
+  return { fight: f, events: [{ kind: 'state-added', id }] };
+}
+
+export function removeState(fight: Fight, id: StateId): Result {
+  const f = clone(fight);
+  if (!hasState(f, id)) return { fight: f, events: [] };
+  f.states = f.states.filter((s) => s !== id);
+  return { fight: f, events: [{ kind: 'state-removed', id, reason: 'removed' }] };
+}
+
+/**
+ * End the round: clear end-of-round states, advance the round (or time out
+ * after round 10), then clear start-of-next-round states.
+ */
+export function endRound(fight: Fight): Result {
+  const f = clone(fight);
+  const events: FightEvent[] = [];
+  if (f.outcome) return { fight: f, events };
+  expireStates(f, 'end-of-round', events);
+  if (f.round >= MAX_ROUNDS) {
+    f.outcome = 'timeout';
+    events.push({ kind: 'timeout' });
+    return { fight: f, events };
+  }
+  f.round += 1;
+  f.upkeepDone = false;
+  events.push({ kind: 'round', round: f.round });
+  expireStates(f, 'start-of-next-round', events);
+  return { fight: f, events };
+}
+
+/** Manual fixes that skip the rules (wrong tap, missed token). */
+export function correct(fight: Fight, field: 'health' | 'damage', delta: number): Result {
+  const f = clone(fight);
+  if (field === 'health') f.health = clamp(f.health + delta, 0, f.startingHealth);
+  else f.damage = Math.max(0, f.damage + delta);
+  const sign = delta > 0 ? '+' : '';
+  return { fight: f, events: [{ kind: 'correction', text: `${field} ${sign}${delta}` }] };
+}
+
+// ---- Internals -----------------------------------------------------------
+
+/** Inflict wounds one at a time while damage covers the current toughness. */
+function resolveWounds(f: Fight, events: FightEvent[]): void {
+  while (!f.outcome && !f.stancePending && f.damage >= toughness(f)) {
+    f.damage -= toughness(f);
+    woundOnce(f, events, 'damage');
+  }
+}
+
+function woundOnce(f: Fight, events: FightEvent[], source: 'damage' | 'effect'): void {
+  f.health = Math.max(0, f.health - 1);
+  events.push({ kind: 'wound', health: f.health, source });
+  if (f.health === 0) {
+    f.outcome = 'defeated';
+    events.push({ kind: 'defeated' });
+    return;
+  }
+  const stance = currentStance(f);
+  if (stance && stance.progression !== null && f.health <= stance.progression) {
+    f.stancePending = true;
+    events.push({ kind: 'stance-complete', label: stance.label, carried: f.damage });
+  }
+}
+
+function gainStruggleInto(f: Fight, amount: number, events: FightEvent[]): void {
+  f.struggle += amount;
+  events.push({ kind: 'struggle', amount, total: f.struggle });
+  if (f.struggle >= unleashAt(f)) {
+    f.struggle = f.players;
+    events.push({
+      kind: 'unleash',
+      damageValue: currentStance(f)?.damageValue ?? 0,
+      resetTo: f.struggle,
+    });
+  }
+}
+
+function expireStates(f: Fight, when: 'end-of-round' | 'start-of-next-round', events: FightEvent[]): void {
+  for (const id of f.states.filter((s) => STATE_DEFS[s].ends === when)) {
+    events.push({ kind: 'state-removed', id, reason: 'expired' });
+  }
+  f.states = f.states.filter((s) => STATE_DEFS[s].ends !== when);
+}
+
+function clone<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
+
+export function romanNumeral(n: number): string {
+  const table: [number, string][] = [
+    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let out = '';
+  for (const [value, glyph] of table) {
+    while (n >= value) {
+      out += glyph;
+      n -= value;
+    }
+  }
+  return out || String(n);
+}
+
+/** One-line log text for an event. */
+export function describe(e: FightEvent): string {
+  switch (e.kind) {
+    case 'hit': return e.doubled ? `Hit ${e.amount / 2} ×2 (Vulnerable) = ${e.amount}` : `Hit ${e.amount}`;
+    case 'wound': return `Wound${e.source === 'effect' ? ' (card effect)' : ''} → health ${e.health}`;
+    case 'stance-complete': return `Stance ${e.label} complete, ${e.carried} damage carried over`;
+    case 'stance-revealed': return `Stance ${e.label} revealed`;
+    case 'defeated': return 'Monster defeated';
+    case 'struggle': return `Struggle ${e.amount > 0 ? '+' : ''}${e.amount} → ${e.total}`;
+    case 'unleash': return `Unleash! Hunters suffer ${e.damageValue}. Struggle reset to ${e.resetTo}`;
+    case 'upkeep': return `Monster upkeep (+${e.gained} struggle)`;
+    case 'state-added': return `${STATE_DEFS[e.id].name} added`;
+    case 'state-removed': return `${STATE_DEFS[e.id].name} ${e.reason}`;
+    case 'round': return `Round ${e.round}`;
+    case 'timeout': return "Time's up";
+    case 'correction': return `Correction: ${e.text}`;
+  }
+}

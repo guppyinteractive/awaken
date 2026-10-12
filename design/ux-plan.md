@@ -6,7 +6,7 @@ Living document. Last updated: 2026-10-12.
 
 A landscape display for **Primal: The Awakening** that tracks the monster during a fight, shown on a TV in the game room. Players keep handling cards and hunters on the table. The app only tracks the monster side of the fight.
 
-Status: **planning**. Nothing has been built yet.
+Status: **wireframe**. Clickable grayscale layouts of every page are live at `www.guppyinteractive.com/awaken/`. The fight rules engine is real and tested; the visual design is not done yet.
 
 ---
 
@@ -249,7 +249,7 @@ Out of scope for now: gear (weapon, helm, armor, item, potions) and anything fro
 | **Herbalist level** | 1–3 | Upgrades between fights |
 | **Forge level** | 1–3 | Upgrades between fights |
 | **Forge elements** | The same 9 element kinds as the hunter sheet. Each is yes/no: is that element's forge unlocked? | Between fights |
-| **Trophies** | One mark per monster defeated, about 20 monsters | After winning a fight |
+| **Trophies** | One mark per monster defeated (22 on the sheet). The keeper adds monsters as they meet them, so no list of names ships with the app. | After winning a fight |
 | **Quests** | Numbered 1–49, marked when done | During the campaign |
 | **Achievements** | Free-text list (about 7 lines on the sheet) | During the campaign |
 
@@ -459,3 +459,6 @@ The only risk left is a player clearing their data with no recent backup. A sync
 | 2026-10-12 | Starting health defaults to 10, and the player can change it at setup. |
 | 2026-10-12 | Data safety: install early, ask for permanent storage, "last backed up" reminders, export through the share sheet, automatic copies on the device, versioned data, one active tab, and a permanent address from first release. |
 | 2026-10-12 | One repo, `guppyinteractive/awaken`, holds every tool. Local folder renamed from `pft` to `awaken`. |
+| 2026-10-12 | Stack: Vite + TypeScript, no UI framework yet. Multi-page build (landing, fight, hunters, campaign) under base `/awaken/`. Fight rules are pure functions in `src/engine/` with Vitest tests. |
+| 2026-10-12 | Deploy: GitHub Actions tests, builds, and publishes `dist/` to Pages. Only the built app is served; design docs stay in the repo. |
+| 2026-10-12 | The wireframe saves to localStorage. The real app moves to versioned IndexedDB (see Data safety). |

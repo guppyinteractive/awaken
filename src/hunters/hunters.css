@@ -1,0 +1,13 @@
+/* Hunter tracker: portrait-first, two columns when the screen is wide or sideways. */
+.cols { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 1fr); }
+.col { display: grid; gap: var(--gap); align-content: start; min-width: 0; }
+.tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+.who { display: grid; gap: 8px; }
+.skills { display: grid; gap: 8px; margin-top: 8px; }
+.skill-row { display: grid; grid-template-columns: 2ch 1fr auto 1fr; gap: 8px; align-items: center; }
+.slots { display: grid; gap: 4px; }
+.spacer { flex: 1; }
+
+@media (orientation: landscape) and (min-width: 700px), (min-width: 900px) {
+  .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+}

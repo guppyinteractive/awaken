@@ -1,0 +1,19 @@
+.landing h1 { margin: 0 0 4px; }
+.roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--gap); margin-top: 12px; }
+.role {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 20px;
+  min-height: 110px;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  cursor: pointer;
+}
+.role:hover { border-color: var(--muted); }
+.role.chosen { border-color: var(--ink); }
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--gap); }
+.tool { display: grid; gap: 4px; color: inherit; text-decoration: none; }
+.tool:hover { border-color: var(--muted); }
+.safety ol { margin: 4px 0 12px; padding-left: 20px; display: grid; gap: 4px; }

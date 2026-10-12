@@ -1,8 +1,29 @@
 # Awaken
 
-Unofficial fan-made companion tools for the board game *Primal: The Awakening*, planned for `guppyinteractive.com`.
+Unofficial fan-made companion tools for the board game *Primal: The Awakening*, served at **www.guppyinteractive.com/awaken/**.
 
 Not affiliated with or endorsed by the game's publisher. This repo contains no game text, art, or logos.
 
 - Design: [`design/ux-plan.md`](design/ux-plan.md) (living document)
-- Status: planning
+- Status: **wireframe**. Clickable grayscale layouts for the landing page and the fight, hunter, and campaign trackers.
+
+## Develop
+
+```sh
+npm install
+npm run dev      # dev server, also reachable on your local network (--host)
+npm test         # rules engine tests (Vitest)
+npm run build    # type-check and build to dist/
+```
+
+Pushes to `main` are tested, built, and deployed to GitHub Pages by `.github/workflows/deploy.yml`.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `src/engine/` | Fight rules as pure functions, with tests |
+| `src/landing/`, `src/fight/`, `src/hunters/`, `src/campaign/` | One folder per page |
+| `src/shared/` | Wireframe styles, storage, and shared helpers |
+| `design/` | UX plan (`design/reference/` is git-ignored) |
+| `rules/` | Rulebook PDFs for reference (git-ignored) |
