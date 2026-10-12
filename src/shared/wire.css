@@ -53,6 +53,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .topbar a { color: inherit; text-decoration: none; font-weight: 700; letter-spacing: 0.04em; }
 .topbar .where { color: var(--muted); }
 .topbar .spacer { flex: 1; }
+.storage-warning {
+  margin: 0;
+  padding: 8px 16px;
+  border-bottom: 2px solid var(--alert);
+  color: var(--alert);
+  background: var(--panel);
+}
 .wire-tag {
   font-size: 11px;
   letter-spacing: 0.1em;

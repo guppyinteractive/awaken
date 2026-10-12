@@ -55,7 +55,7 @@ bd close <id>         # Complete work
 ```bash
 npm install
 npm run dev      # dev server on the local network (--host)
-npm test         # rules engine tests (Vitest)
+npm test         # rules engine and storage tests (Vitest)
 npm run build    # type-check and build to dist/
 ```
 
@@ -70,7 +70,8 @@ device keeps its own state; there is no sync or accounts.
 - `src/engine/` — fight rules as pure functions returning `{fight, events}`, with tests.
 - `src/landing/`, `src/fight/`, `src/hunters/`, `src/campaign/` — one folder per page;
   each renders with `innerHTML` and handles clicks by `data-act` delegation.
-- `src/shared/` — wireframe styles, storage helpers, component names (`game.ts`).
+- `src/shared/` — wireframe styles, helpers, component names (`game.ts`), and saved data
+  (`store.ts`: versioned IndexedDB records; a format change needs an upgrade step and a fixture).
 - `design/ux-plan.md` — the living UX plan. Record decisions in its decision log.
 
 ## Conventions & Patterns

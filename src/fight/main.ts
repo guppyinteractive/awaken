@@ -2,7 +2,8 @@ import '../shared/wire.css';
 import './fight.css';
 import * as E from '../engine/fight';
 import { STATE_DEFS, STATE_IDS, type StateId } from '../engine/states';
-import { DISCLAIMER, KEYS, esc, keepAwake, load, save, topbar } from '../shared/util';
+import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
+import { load, save } from '../shared/store';
 import { sectorsSvg } from '../shared/sectors';
 import { MONSTERS } from '../shared/game';
 
@@ -27,7 +28,7 @@ const UNDO_LIMIT = 30;
 const LOG_LIMIT = 40;
 
 const root = document.getElementById('app')!;
-const saved = load<Saved>(KEYS.fight, { fight: null, undo: [], log: [] });
+const saved = await load<Saved>('fight', { fight: null, undo: [], log: [] });
 let fight: Fight | null = saved.fight;
 let undo: Fight[] = saved.undo ?? [];
 let log: string[] = saved.log ?? [];
@@ -62,7 +63,7 @@ function undoLast(): void {
 }
 
 function persist(): void {
-  save(KEYS.fight, { fight, undo, log } satisfies Saved);
+  void save('fight', { fight, undo, log } satisfies Saved);
 }
 
 function queueAnnouncements(events: E.FightEvent[]): void {

@@ -1,12 +1,13 @@
 import '../shared/wire.css';
 import './landing.css';
-import { DISCLAIMER, KEYS, esc, load, save, topbar } from '../shared/util';
+import { DISCLAIMER, esc, topbar } from '../shared/util';
+import { load, save } from '../shared/store';
 
 type Role = 'hunter' | 'keeper';
 
 const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
-let role = load<Role | null>(KEYS.role, null);
+let role = await load<Role | null>('role', null);
 
 const TOOLS = [
   { href: 'hunters/', name: 'Hunter tracker', who: 'Each player, on their own phone', what: 'Skill tree and your own materials, plants and elements.' },
@@ -58,11 +59,11 @@ function render(): void {
     ${DISCLAIMER}`;
 }
 
-root.addEventListener('click', (ev) => {
+root.addEventListener('click', async (ev) => {
   const btn = (ev.target as Element).closest<HTMLElement>('[data-role]');
   if (!btn) return;
   role = btn.dataset.role as Role;
-  save(KEYS.role, role);
+  await save('role', role); // finish saving before leaving the page
   location.href = BASE + (role === 'hunter' ? 'hunters/' : 'campaign/');
 });
 

@@ -1,6 +1,7 @@
 import '../shared/wire.css';
 import './hunters.css';
-import { DISCLAIMER, KEYS, esc, load, save, topbar } from '../shared/util';
+import { DISCLAIMER, esc, topbar } from '../shared/util';
+import { load, save } from '../shared/store';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -34,10 +35,10 @@ function newHunter(): Hunter {
 }
 
 const root = document.getElementById('app')!;
-const state = load<Saved>(KEYS.hunters, { hunters: [newHunter()], current: 0 });
+const state = await load<Saved>('hunters', { hunters: [newHunter()], current: 0 });
 
 const hunter = () => state.hunters[state.current];
-const persist = () => save(KEYS.hunters, state);
+const persist = () => void save('hunters', state);
 
 function render(): void {
   const h = hunter();

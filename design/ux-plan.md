@@ -467,8 +467,9 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-12 | One repo, `guppyinteractive/awaken`, holds every tool. Local folder renamed from `pft` to `awaken`. |
 | 2026-10-12 | Stack: Vite + TypeScript, no UI framework yet. Multi-page build (landing, fight, hunters, campaign) under base `/awaken/`. Fight rules are pure functions in `src/engine/` with Vitest tests. |
 | 2026-10-12 | Deploy: GitHub Actions tests, builds, and publishes `dist/` to Pages. Only the built app is served; design docs stay in the repo. |
-| 2026-10-12 | The wireframe saves to localStorage. The real app moves to versioned IndexedDB (see Data safety). |
+| 2026-10-12 | ~~The wireframe saves to localStorage.~~ Replaced by IndexedDB (see below). |
 | 2026-10-12 | Use the sheets' component names (materials, plants, elements, 22 trophy monsters) as built-in labels. Players don't type them. Still no art, icons, logos, or rules text. |
 | 2026-10-12 | Plain labels on screen: "Next stance at health" (the card's progression value) and "[Monster] attack damage" (its damage value). Tapping "Next stance at N" on the board opens the stance editor. |
 | 2026-10-12 | Monster states: added Stunned, Unstoppable, and Acceleration (stacking, adds Struggle at upkeep). Monster-specific tracks (Hardening, Charge) and the states they cause stay out for now. One **+ Add state** picker replaces per-state buttons. |
 | 2026-10-12 | The address is `www.guppyinteractive.com/awaken/` (replaces /primal). Browser data is tied to this origin and path, so it must not move. |
+| 2026-10-12 | Saved data lives in IndexedDB (`src/shared/store.ts`): one record per tool as `{version, savedAt, data}`, with step-by-step upgrades tested against saved examples of every version (`src/shared/fixtures/`). Before an upgrade the old record is kept until a later load needs no upgrade; data too new or broken to read is kept aside, not overwritten. Wireframe localStorage data is imported once. Without IndexedDB the app runs in memory and shows a warning. |

@@ -1,0 +1,117 @@
+{
+  "hunters": [
+    {
+      "player": "Sam",
+      "hunterClass": "",
+      "skills": [
+        [
+          true,
+          true
+        ],
+        [
+          true,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "counts": {
+        "materials": [
+          2,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "plants": [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        "elements": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "notes": "Owes the group a potion"
+    },
+    {
+      "player": "",
+      "hunterClass": "",
+      "skills": [
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ],
+        [
+          false,
+          false
+        ]
+      ],
+      "counts": {
+        "materials": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "plants": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "elements": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "notes": ""
+    }
+  ],
+  "current": 0
+}

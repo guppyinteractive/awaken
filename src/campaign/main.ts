@@ -1,6 +1,7 @@
 import '../shared/wire.css';
 import './campaign.css';
-import { DISCLAIMER, KEYS, esc, load, save, topbar } from '../shared/util';
+import { DISCLAIMER, esc, topbar } from '../shared/util';
+import { load, save } from '../shared/store';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
 const CHAPTERS = 11;
@@ -31,11 +32,8 @@ const fresh = (): Campaign => ({
 
 const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
-const c = load<Campaign>(KEYS.campaign, fresh());
-// Earlier wireframe builds stored trophies as {name, won} objects.
-c.trophies = (c.trophies as unknown[]).flatMap((t) =>
-  typeof t === 'string' ? [t] : (t as { name: string; won: boolean }).won ? [(t as { name: string }).name] : []);
-const persist = () => save(KEYS.campaign, c);
+const c = await load<Campaign>('campaign', fresh());
+const persist = () => void save('campaign', c);
 
 /** The chapter being played: the first one not yet completed. */
 function currentChapter(): number {
