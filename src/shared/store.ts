@@ -54,6 +54,8 @@ export const legacyKey = (name: RecordName) => `awaken.wire.${name}.v1`;
 export const preUpgradeKey = (name: RecordName) => `${name}:pre-upgrade`;
 /** A record this version of the app could not read, kept instead of overwritten. */
 export const unreadableKey = (name: RecordName) => `${name}:unreadable`;
+/** When the player last made (or restored) a backup: {at: ISO time}. */
+export const BACKUP_KEY = 'backup';
 
 export interface Deps {
   idb?: IDBFactory;
@@ -66,14 +68,24 @@ export interface Store {
   save(name: RecordName, data: unknown): Promise<void>;
   /** A problem the player should know about, or null. */
   warning(): string | null;
+  /** Every record as stored, with its version, for a backup file. */
+  exportAll(): Promise<Partial<Record<RecordName, Stored>>>;
+  /**
+   * Replace the given records (others are kept) and set the last backup time,
+   * all at once. Throws, changing nothing, if a record can't be read.
+   */
+  restore(records: Partial<Record<RecordName, Stored>>, backedUpAt: string): Promise<void>;
+  /** ISO time of the last backup, or null if never. */
+  backedUpAt(): Promise<string | null>;
+  markBackedUp(at?: string): Promise<void>;
 }
 
-type Op = [key: string, value: Stored | undefined];
+type Op = [key: string, value: Stored | { at: string } | undefined];
 
 export function createStore(deps: Deps): Store {
   let warning: string | null = null;
   let opened: Promise<IDBDatabase | null> | null = null;
-  const memory = new Map<string, Stored>();
+  const memory = new Map<string, any>();
 
   const NOT_SAVED = 'This browser is not saving your progress. It will be lost when you close this page. Open the app in your normal browser, or install it.';
 
@@ -94,10 +106,10 @@ export function createStore(deps: Deps): Store {
     return opened;
   }
 
-  function get(db: IDBDatabase, key: string): Promise<Stored | undefined> {
+  function get<T = Stored>(db: IDBDatabase, key: string): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
       const req = db.transaction(STORE).objectStore(STORE).get(key);
-      req.onsuccess = () => resolve(req.result as Stored | undefined);
+      req.onsuccess = () => resolve(req.result as T | undefined);
       req.onerror = () => reject(req.error);
     });
   }
@@ -188,7 +200,50 @@ export function createStore(deps: Deps): Store {
     }
   }
 
-  return { load, save, warning: () => warning };
+  /** Write to IndexedDB, or to memory when it's unavailable. */
+  async function apply(ops: Op[]): Promise<void> {
+    const db = await open();
+    if (db) return write(db, ops);
+    for (const [key, value] of ops) {
+      if (value === undefined) memory.delete(key);
+      else memory.set(key, value);
+    }
+  }
+
+  async function read<T = Stored>(key: string): Promise<T | undefined> {
+    const db = await open();
+    return db ? get<T>(db, key) : memory.get(key);
+  }
+
+  async function exportAll(): Promise<Partial<Record<RecordName, Stored>>> {
+    const out: Partial<Record<RecordName, Stored>> = {};
+    for (const name of Object.keys(UPGRADES) as RecordName[]) {
+      let stored = await read(name);
+      if (!stored) {
+        // Wireframe data whose page hasn't been opened since the move to IndexedDB.
+        const legacy = readLegacy(name);
+        if (legacy !== undefined) stored = { version: 1, savedAt: '', data: legacy };
+      }
+      if (stored) out[name] = stored;
+    }
+    return out;
+  }
+
+  async function restore(records: Partial<Record<RecordName, Stored>>, at: string): Promise<void> {
+    const ops: Op[] = [];
+    for (const [name, stored] of Object.entries(records) as [RecordName, Stored][]) {
+      upgrade(name, stored); // throws before anything is written
+      ops.push([name, structuredClone(stored)], [preUpgradeKey(name), undefined]);
+    }
+    ops.push([BACKUP_KEY, { at }]);
+    await apply(ops);
+    for (const name of Object.keys(records) as RecordName[]) clearLegacy(name);
+  }
+
+  const backedUpAt = async () => (await read<{ at: string }>(BACKUP_KEY).catch(() => undefined))?.at ?? null;
+  const markBackedUp = (at = new Date().toISOString()) => apply([[BACKUP_KEY, { at }]]);
+
+  return { load, save, warning: () => warning, exportAll, restore, backedUpAt, markBackedUp };
 }
 
 function localStorageOrNone(): Storage | undefined {
@@ -204,3 +259,7 @@ const store = createStore({ idb: globalThis.indexedDB, local: localStorageOrNone
 export const load = store.load;
 export const save = store.save;
 export const storageWarning = store.warning;
+export const exportAll = store.exportAll;
+export const restore = store.restore;
+export const backedUpAt = store.backedUpAt;
+export const markBackedUp = store.markBackedUp;

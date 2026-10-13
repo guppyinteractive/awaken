@@ -150,3 +150,51 @@ describe('store', () => {
     expect(s.warning()).toMatch(/not saving/);
   });
 });
+
+describe('backup records', () => {
+  it('exports every record with its version, including unopened wireframe data', async () => {
+    const s = reload();
+    await s.save('role', 'keeper');
+    local.setItem(legacyKey('campaign'), JSON.stringify(FIXTURES['campaign.v1']));
+    const out = await s.exportAll();
+    expect(Object.keys(out).sort()).toEqual(['campaign', 'role']);
+    expect(out.role).toMatchObject({ version: currentVersion('role'), data: 'keeper' });
+    expect(out.campaign).toEqual({ version: 1, savedAt: '', data: FIXTURES['campaign.v1'] });
+  });
+
+  it('restores old versions, which upgrade on the next load, and keeps records not in the backup', async () => {
+    const s = reload();
+    await s.save('campaign', { other: true });
+    await s.save('hunters', FIXTURES['hunters.v1']);
+    await s.restore({ campaign: { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] } }, '2026-10-02T00:00:00.000Z');
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
+    expect(await reload().load('hunters', null)).toEqual(FIXTURES['hunters.v1']);
+    expect(await reload().backedUpAt()).toBe('2026-10-02T00:00:00.000Z');
+  });
+
+  it('changes nothing if any record in the backup is unreadable', async () => {
+    const s = reload();
+    await s.save('role', 'keeper');
+    await expect(s.restore({
+      role: { version: 1, savedAt: '', data: 'hunter' },
+      fight: { version: 99, savedAt: '', data: {} },
+    }, '2026-10-02T00:00:00.000Z')).rejects.toThrow();
+    expect(await reload().load('role', null)).toBe('keeper');
+    expect(await reload().backedUpAt()).toBeNull();
+  });
+
+  it('remembers the last backup time', async () => {
+    expect(await reload().backedUpAt()).toBeNull();
+    await reload().markBackedUp('2026-10-05T12:00:00.000Z');
+    expect(await reload().backedUpAt()).toBe('2026-10-05T12:00:00.000Z');
+  });
+
+  it('backs up and restores in memory when IndexedDB is unavailable', async () => {
+    const s = createStore({});
+    await s.save('role', 'hunter');
+    const out = await s.exportAll();
+    const t = createStore({});
+    await t.restore(out, '2026-10-02T00:00:00.000Z');
+    expect(await t.load('role', null)).toBe('hunter');
+  });
+});
