@@ -2,6 +2,7 @@ import '../shared/wire.css';
 import './hunters.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
+import { protectIfInstalled } from '../shared/persist';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -141,4 +142,5 @@ root.addEventListener('input', (ev) => {
   }
 });
 
+void protectIfInstalled();
 render();

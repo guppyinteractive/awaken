@@ -4,6 +4,7 @@ import * as E from '../engine/fight';
 import { STATE_DEFS, STATE_IDS, type StateId } from '../engine/states';
 import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
+import { protectIfInstalled } from '../shared/persist';
 import { sectorsSvg } from '../shared/sectors';
 import { MONSTERS } from '../shared/game';
 
@@ -484,4 +485,5 @@ if (fight?.stancePending && !fight.outcome) {
   panel = { kind: 'stance', mode: 'reveal', draft: E.blankStance(fight) };
 }
 keepAwake();
+void protectIfInstalled();
 render();

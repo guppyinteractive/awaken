@@ -2,6 +2,7 @@ import '../shared/wire.css';
 import './campaign.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
+import { protectIfInstalled } from '../shared/persist';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
 const CHAPTERS = 11;
@@ -170,4 +171,5 @@ root.addEventListener('submit', (ev) => {
   render();
 });
 
+void protectIfInstalled();
 render();
