@@ -1,9 +1,11 @@
 import '../shared/wire.css';
 import './landing.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
-import { backedUpAt, exportAll, load, markBackedUp, restore, save, UPGRADES, type RecordName } from '../shared/store';
+import {
+  backedUpAt, exportAll, load, markBackedUp, restore, save, snapshots, UPGRADES, type RecordName, type Stored,
+} from '../shared/store';
 import { protect, protectIfInstalled, type Protection } from '../shared/persist';
-import { backupStatus, describe, LABELS, makeBackup, parseBackup, shareOrDownload, type Backup, type Status } from '../shared/backup';
+import { backupStatus, describe, LABELS, makeBackup, parseBackup, shareOrDownload, type Status } from '../shared/backup';
 
 type Role = 'hunter' | 'keeper';
 
@@ -14,8 +16,18 @@ let protection: Protection = await protectIfInstalled();
 /** The player tapped Protect and the browser said no. */
 let refused = false;
 let status: Status = await currentStatus();
-/** A backup file the player picked, waiting for them to confirm the restore. */
-let pending: { backup: Backup; device: Awaited<ReturnType<typeof exportAll>> } | null = null;
+type Records = Partial<Record<RecordName, Stored>>;
+
+/** A backup file or earlier copy the player picked, waiting for them to confirm. */
+let pending: {
+  question: string;
+  records: Records;
+  device: Records;
+  /** Set the last backup time to this (only for a backup file). */
+  backedUpAt?: string;
+  done: string;
+} | null = null;
+let versions = await snapshots();
 /** The outcome of the last backup or restore, for the player. */
 let message: { text: string; alert?: boolean } | null = null;
 
@@ -54,24 +66,42 @@ const when = (iso: string) => {
 
 function restorePreview(): string {
   if (!pending) return '';
-  const { backup, device } = pending;
+  const { question, records, device } = pending;
   const rows = NAMES.flatMap((n) => {
-    if (backup.records[n]) {
-      return [`<li><strong>${esc(LABELS[n])}:</strong> ${esc(describe(n, backup.records[n]!))}${
+    if (records[n]) {
+      return [`<li><strong>${esc(LABELS[n])}:</strong> ${esc(describe(n, records[n]!))}${
         device[n] ? ` <span class="note">(replaces ${esc(describe(n, device[n]!))})</span>` : ''}</li>`];
     }
-    return device[n] ? [`<li><strong>${esc(LABELS[n])}:</strong> not in this backup, kept as is</li>`] : [];
+    return device[n] ? [`<li><strong>${esc(LABELS[n])}:</strong> kept as is</li>`] : [];
   });
   return `
-    <div class="restore-preview" role="dialog" aria-label="Restore backup">
-      <div class="mid">Restore the backup from ${esc(when(backup.exportedAt))}?</div>
+    <div class="restore-preview" role="dialog" aria-label="Restore">
+      <div class="mid">${esc(question)}</div>
       <ul>${rows.join('')}</ul>
-      <p class="note">This replaces the progress on this device. It can't be undone, so back up first if you're not sure.</p>
+      <p class="note">This replaces the progress on this device. What it replaces is kept under Previous versions.</p>
       <div class="row">
         <button class="btn alert" data-act="restore-confirm">Replace my progress</button>
         <button class="btn" data-act="restore-cancel">Cancel</button>
       </div>
     </div>`;
+}
+
+const REASONS = { session: '', restore: ' · before a restore or rollback', upgrade: ' · before an app update' };
+
+function previousVersions(): string {
+  if (!versions.length) return '';
+  return `
+    <details class="versions">
+      <summary>Previous versions on this device (${versions.length})</summary>
+      <p class="note">Copies kept from earlier sessions. They are lost if the browser's data is cleared; only a backup file survives that.</p>
+      <ul>${versions.map(({ name, snapshot }, i) => `
+        <li class="row">
+          <span class="grow"><strong>${esc(LABELS[name])}</strong> · ${esc(when(snapshot.savedAt || snapshot.takenAt))}${REASONS[snapshot.reason]}<br>
+            <span class="note">${esc(describe(name, snapshot))}</span></span>
+          <button class="btn small" data-act="rollback" data-i="${i}">Roll back</button>
+        </li>`).join('')}
+      </ul>
+    </details>`;
 }
 
 function render(): void {
@@ -117,6 +147,7 @@ function render(): void {
         <input type="file" accept=".json,application/json" data-act="restore-file" hidden>
         ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
         ${restorePreview()}
+        ${previousVersions()}
       </section>
     </main>
     ${DISCLAIMER}`;
@@ -141,7 +172,14 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
   input.value = ''; // so picking the same file again still fires
   if (!file) return;
   try {
-    pending = { backup: parseBackup(await file.text()), device: await exportAll() };
+    const backup = parseBackup(await file.text());
+    pending = {
+      question: `Restore the backup from ${when(backup.exportedAt)}?`,
+      records: backup.records,
+      device: await exportAll(),
+      backedUpAt: Number.isNaN(Date.parse(backup.exportedAt)) ? new Date().toISOString() : backup.exportedAt,
+      done: `Restored the backup from ${when(backup.exportedAt)}.`,
+    };
     message = null;
   } catch (e) {
     pending = null;
@@ -152,24 +190,25 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
 }
 
 async function confirmRestore(): Promise<void> {
-  const { backup } = pending!;
+  const { records, backedUpAt: at, done } = pending!;
   pending = null;
   try {
-    const at = Number.isNaN(Date.parse(backup.exportedAt)) ? new Date().toISOString() : backup.exportedAt;
-    await restore(backup.records, at);
+    await restore(records, at);
     role = await load<Role | null>('role', null);
-    message = { text: `Restored the backup from ${when(backup.exportedAt)}.` };
+    message = { text: done };
   } catch {
-    message = { text: 'The backup could not be restored. Your progress has not changed.', alert: true };
+    message = { text: 'That could not be restored. Your progress has not changed.', alert: true };
   }
   status = await currentStatus();
+  versions = await snapshots();
   render();
 }
 
-// Coming back from a tracker with the back button: its saves may have changed the status.
+// Coming back from a tracker with the back button: its saves may have changed the status and copies.
 addEventListener('pageshow', async (ev) => {
   if (!ev.persisted) return;
   status = await currentStatus();
+  versions = await snapshots();
   render();
 });
 
@@ -189,6 +228,20 @@ root.addEventListener('click', async (ev) => {
   if (act === 'backup') return backUp();
   if (act === 'restore') return root.querySelector<HTMLInputElement>('[data-act="restore-file"]')!.click();
   if (act === 'restore-confirm') return confirmRestore();
+  if (act === 'rollback') {
+    const { name, snapshot } = versions[Number((ev.target as Element).closest<HTMLElement>('[data-i]')!.dataset.i)];
+    const at = when(snapshot.savedAt || snapshot.takenAt);
+    pending = {
+      question: `Roll the ${LABELS[name].toLowerCase()} back to ${at}?`,
+      records: { [name]: snapshot },
+      device: { [name]: (await exportAll())[name] },
+      done: `Rolled the ${LABELS[name].toLowerCase()} back to ${at}.`,
+    };
+    message = null;
+    render();
+    root.querySelector('.restore-preview')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    return;
+  }
   if (act === 'restore-cancel') {
     pending = null;
     render();

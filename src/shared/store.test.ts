@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import {
-  UPGRADES, createStore, currentVersion, legacyKey, preUpgradeKey, unreadableKey, upgrade,
-  type RecordName, type Stored,
+  SNAPSHOT_GAP_MS, SNAPSHOT_LIMIT, UPGRADES, createStore, currentVersion, legacyKey, preUpgradeKey, snapshotKey,
+  snapshotOps, unreadableKey, upgrade,
+  type RecordName, type Snapshot, type Stored,
 } from './store';
 
 const NAMES = Object.keys(UPGRADES) as RecordName[];
@@ -124,12 +125,17 @@ describe('store', () => {
     expect(local.getItem(legacyKey('campaign'))).toBeNull();
   });
 
-  it('keeps a pre-upgrade copy until a load needs no upgrade', async () => {
+  it('keeps a snapshot of the record from before an upgrade', async () => {
     const old: Stored = { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] };
     await putRaw('campaign', old);
     expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
-    expect(await raw(preUpgradeKey('campaign'))).toEqual(old);
+    const [snap] = await reload().snapshots();
+    expect(snap).toMatchObject({ name: 'campaign', snapshot: { ...old, reason: 'upgrade' } });
+  });
 
+  it('deletes the pre-upgrade copy left by older builds', async () => {
+    await putRaw(preUpgradeKey('campaign'), { version: 1, savedAt: '', data: {} });
+    await putRaw('campaign', { version: 2, savedAt: '', data: FIXTURES['campaign.v2'] });
     await reload().load('campaign', null);
     expect(await raw(preUpgradeKey('campaign'))).toBeUndefined();
   });
@@ -196,5 +202,64 @@ describe('backup records', () => {
     const t = createStore({});
     await t.restore(out, '2026-10-02T00:00:00.000Z');
     expect(await t.load('role', null)).toBe('hunter');
+  });
+});
+
+describe('snapshots', () => {
+  const at = (iso: string) => new Date(iso);
+  const rec = (savedAt: string): Stored => ({ version: 2, savedAt, data: { n: savedAt } });
+  const snap = (takenAt: string, savedAt = takenAt): Snapshot => ({ ...rec(savedAt), takenAt, reason: 'session' });
+
+  it('copies the record from before a session, once per session', async () => {
+    await reload().save('campaign', { n: 1 });
+    expect(await reload().snapshots()).toEqual([]); // nothing to copy yet
+
+    const s = reload();
+    await s.save('campaign', { n: 2 });
+    await s.save('campaign', { n: 3 });
+    const list = await reload().snapshots();
+    expect(list.map((x) => x.snapshot.data)).toEqual([{ n: 1 }]);
+    expect(list[0].snapshot.reason).toBe('session');
+    expect(await reload().load('campaign', null)).toEqual({ n: 3 });
+  });
+
+  it('applies saves in order while taking a snapshot', async () => {
+    await reload().save('hunters', { n: 1 });
+    const s = reload();
+    void s.save('hunters', { n: 2 });
+    await s.save('hunters', { n: 3 });
+    expect(await reload().load('hunters', null)).toEqual({ n: 3 });
+  });
+
+  it("doesn't copy today's choice", async () => {
+    await reload().save('role', 'keeper');
+    await reload().save('role', 'hunter');
+    expect(await reload().snapshots()).toEqual([]);
+  });
+
+  it('skips a session snapshot when the newest is recent, unless forced', () => {
+    const now = at('2026-10-12T12:00:00Z');
+    const recent = [snap(new Date(now.getTime() - SNAPSHOT_GAP_MS + 1000).toISOString(), '2026-10-12T08:00:00Z')];
+    expect(snapshotOps('campaign', rec('2026-10-12T11:00:00Z'), recent, 'session', false, now)).toEqual([]);
+    expect(snapshotOps('campaign', rec('2026-10-12T11:00:00Z'), recent, 'restore', true, now)).toHaveLength(1);
+  });
+
+  it("doesn't copy the same save twice, and keeps only the newest few", () => {
+    const now = at('2026-10-12T12:00:00Z');
+    const list = Array.from({ length: SNAPSHOT_LIMIT }, (_, i) => snap(`2026-10-0${i + 1}T00:00:00Z`)).reverse();
+    expect(snapshotOps('campaign', rec(list[0].savedAt), list, 'restore', true, now)).toEqual([]);
+    const [[key, out]] = snapshotOps('campaign', rec('2026-10-11T00:00:00Z'), list, 'session', false, now);
+    expect(key).toBe(snapshotKey('campaign'));
+    expect((out as Snapshot[]).map((x) => x.savedAt)).toEqual(['2026-10-11T00:00:00Z', ...list.slice(0, -1).map((x) => x.savedAt)]);
+  });
+
+  it('copies what a restore replaces, so a rollback can be undone', async () => {
+    await reload().save('fight', { n: 1 });
+    const s = reload();
+    await s.restore({ fight: { ...rec('2026-10-01T00:00:00.000Z'), version: 1 } });
+    expect(await reload().load('fight', null)).toEqual({ n: '2026-10-01T00:00:00.000Z' });
+    const [first] = await reload().snapshots();
+    expect(first.snapshot).toMatchObject({ data: { n: 1 }, reason: 'restore' });
+    expect(await reload().backedUpAt()).toBeNull(); // a rollback isn't a backup
   });
 });

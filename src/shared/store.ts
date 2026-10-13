@@ -50,12 +50,45 @@ const DB_NAME = 'awaken';
 const STORE = 'records';
 /** Where the wireframe kept each record in localStorage. */
 export const legacyKey = (name: RecordName) => `awaken.wire.${name}.v1`;
-/** The record as it was before its last upgrade, kept until a load needs no upgrade. */
+/** Left by builds before snapshots, which kept one copy from before an upgrade. Deleted on load. */
 export const preUpgradeKey = (name: RecordName) => `${name}:pre-upgrade`;
+/** Earlier copies of a record, newest first, so a mistake or bug can be rolled back. */
+export const snapshotKey = (name: RecordName) => `${name}:snapshots`;
 /** A record this version of the app could not read, kept instead of overwritten. */
 export const unreadableKey = (name: RecordName) => `${name}:unreadable`;
 /** When the player last made (or restored) a backup: {at: ISO time}. */
 export const BACKUP_KEY = 'backup';
+
+/** A copy of a record as it was before a session, a restore, or an app upgrade changed it. */
+export interface Snapshot extends Stored {
+  /** ISO time the copy was taken. */
+  takenAt: string;
+  reason: 'session' | 'restore' | 'upgrade';
+}
+
+/** Copies kept per record. */
+export const SNAPSHOT_LIMIT = 5;
+/** A session's first save takes a copy only if the newest one is older than this. */
+export const SNAPSHOT_GAP_MS = 3 * 60 * 60 * 1000;
+/** Records with copies. Today's choice isn't worth rolling back. */
+export const SNAPSHOT_NAMES: RecordName[] = ['campaign', 'hunters', 'fight'];
+
+/**
+ * The write that adds `current` to the front of `list`, or none if there's
+ * nothing to copy, it's already the newest copy, or (unless forced) the newest
+ * copy is recent.
+ */
+export function snapshotOps(
+  name: RecordName, current: Stored | undefined, list: Snapshot[] | undefined,
+  reason: Snapshot['reason'], force: boolean, now = new Date(),
+): Op[] {
+  if (!current || !SNAPSHOT_NAMES.includes(name)) return [];
+  const newest = list?.[0];
+  if (newest && current.savedAt && newest.savedAt === current.savedAt) return [];
+  if (!force && newest && now.getTime() - Date.parse(newest.takenAt) < SNAPSHOT_GAP_MS) return [];
+  const copy: Snapshot = { version: current.version, savedAt: current.savedAt, data: current.data, takenAt: now.toISOString(), reason };
+  return [[snapshotKey(name), [copy, ...(list ?? [])].slice(0, SNAPSHOT_LIMIT)]];
+}
 
 export interface Deps {
   idb?: IDBFactory;
@@ -71,16 +104,21 @@ export interface Store {
   /** Every record as stored, with its version, for a backup file. */
   exportAll(): Promise<Partial<Record<RecordName, Stored>>>;
   /**
-   * Replace the given records (others are kept) and set the last backup time,
-   * all at once. Throws, changing nothing, if a record can't be read.
+   * Replace the given records (others are kept), copying each one it replaces
+   * to its snapshots, and set the last backup time if given, all at once.
+   * Throws, changing nothing, if a record can't be read.
    */
-  restore(records: Partial<Record<RecordName, Stored>>, backedUpAt: string): Promise<void>;
+  restore(records: Partial<Record<RecordName, Stored>>, backedUpAt?: string): Promise<void>;
+  /** Every record's earlier copies, newest first. */
+  snapshots(): Promise<{ name: RecordName; snapshot: Snapshot }[]>;
   /** ISO time of the last backup, or null if never. */
   backedUpAt(): Promise<string | null>;
   markBackedUp(at?: string): Promise<void>;
 }
 
-type Op = [key: string, value: Stored | { at: string } | undefined];
+type Op = [key: string, value: Stored | Snapshot[] | { at: string } | undefined];
+/** Works out the writes from the current values of the keys it read. */
+type Plan = (current: Map<string, any>) => Op[];
 
 export function createStore(deps: Deps): Store {
   let warning: string | null = null;
@@ -114,14 +152,32 @@ export function createStore(deps: Deps): Store {
     });
   }
 
-  /** Apply puts (and deletes, for undefined) in one transaction. */
-  function write(db: IDBDatabase, ops: Op[]): Promise<void> {
+  /**
+   * Apply puts (and deletes, for undefined) in one transaction. With a plan,
+   * read `keys` first in the same transaction, so nothing can change between
+   * the read and the write, and later saves still apply after this one.
+   */
+  function write(db: IDBDatabase, ops: Op[] | Plan, keys: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite');
       const s = tx.objectStore(STORE);
-      for (const [key, value] of ops) {
-        if (value === undefined) s.delete(key);
-        else s.put(value, key);
+      const put = (list: Op[]) => {
+        for (const [key, value] of list) {
+          if (value === undefined) s.delete(key);
+          else s.put(value, key);
+        }
+      };
+      if (typeof ops !== 'function') put(ops);
+      else if (!keys.length) put(ops(new Map()));
+      else {
+        const current = new Map<string, any>();
+        for (const key of keys) {
+          const req = s.get(key);
+          req.onsuccess = () => {
+            current.set(key, req.result);
+            if (current.size === keys.length) put(ops(current));
+          };
+        }
       }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
@@ -175,35 +231,43 @@ export function createStore(deps: Deps): Store {
 
     const upgraded = stored.version < currentVersion(name);
     if (db && (imported || upgraded)) {
-      // Keep the old copy (localStorage, or the pre-upgrade record) until a
-      // later load reads the new record without needing an upgrade.
-      const ops: Op[] = [[name, wrap(name, data)]];
-      if (upgraded && !imported) ops.unshift([preUpgradeKey(name), stored]);
-      await write(db, ops).catch(() => undefined);
+      // Keep the old copy: localStorage until a later load finds the new
+      // record, or a snapshot of the record from before the upgrade.
+      const old = stored;
+      const record = wrap(name, data);
+      await write(db, imported ? [[name, record]] : (cur) => [
+        ...snapshotOps(name, old, cur.get(snapshotKey(name)), 'upgrade', true),
+        [name, record],
+      ], imported ? [] : [snapshotKey(name)]).catch(() => undefined);
     } else if (db) {
       await write(db, [[preUpgradeKey(name), undefined]]).catch(() => undefined);
     }
     return data as T;
   }
 
+  /** Records saved since this page opened; the first save of each may take a snapshot. */
+  const savedThisSession = new Set<RecordName>();
+
   async function save(name: RecordName, data: unknown): Promise<void> {
     const record = wrap(name, structuredClone(data));
-    const db = await open();
-    if (!db) {
-      memory.set(name, record);
-      return;
-    }
+    const first = !savedThisSession.has(name);
+    savedThisSession.add(name);
+    const plan: Plan = (cur) => [
+      ...(first ? snapshotOps(name, cur.get(name), cur.get(snapshotKey(name)), 'session', false) : []),
+      [name, record],
+    ];
     try {
-      await write(db, [[name, record]]);
+      await apply(plan, first ? [name, snapshotKey(name)] : []);
     } catch {
       warning = 'Your latest change could not be saved on this device. The device may be out of storage.';
     }
   }
 
   /** Write to IndexedDB, or to memory when it's unavailable. */
-  async function apply(ops: Op[]): Promise<void> {
+  async function apply(ops: Op[] | Plan, keys: string[] = []): Promise<void> {
     const db = await open();
-    if (db) return write(db, ops);
+    if (db) return write(db, ops, keys);
+    if (typeof ops === 'function') ops = ops(new Map(keys.map((k) => [k, memory.get(k)])));
     for (const [key, value] of ops) {
       if (value === undefined) memory.delete(key);
       else memory.set(key, value);
@@ -229,21 +293,34 @@ export function createStore(deps: Deps): Store {
     return out;
   }
 
-  async function restore(records: Partial<Record<RecordName, Stored>>, at: string): Promise<void> {
-    const ops: Op[] = [];
-    for (const [name, stored] of Object.entries(records) as [RecordName, Stored][]) {
-      upgrade(name, stored); // throws before anything is written
-      ops.push([name, structuredClone(stored)], [preUpgradeKey(name), undefined]);
-    }
-    ops.push([BACKUP_KEY, { at }]);
-    await apply(ops);
+  async function restore(records: Partial<Record<RecordName, Stored>>, at?: string): Promise<void> {
+    const entries = Object.entries(records) as [RecordName, Stored][];
+    for (const [name, stored] of entries) upgrade(name, stored); // throws before anything is written
+    const plan: Plan = (cur) => {
+      const ops: Op[] = entries.flatMap(([name, stored]): Op[] => [
+        ...snapshotOps(name, cur.get(name), cur.get(snapshotKey(name)), 'restore', true),
+        [name, { version: stored.version, savedAt: stored.savedAt, data: structuredClone(stored.data) }],
+      ]);
+      if (at) ops.push([BACKUP_KEY, { at }]);
+      return ops;
+    };
+    await apply(plan, entries.flatMap(([name]) => [name, snapshotKey(name)]));
     for (const name of Object.keys(records) as RecordName[]) clearLegacy(name);
+  }
+
+  async function snapshots(): Promise<{ name: RecordName; snapshot: Snapshot }[]> {
+    const out: { name: RecordName; snapshot: Snapshot }[] = [];
+    for (const name of SNAPSHOT_NAMES) {
+      const list = await read<Snapshot[]>(snapshotKey(name)).catch(() => undefined);
+      for (const snapshot of list ?? []) out.push({ name, snapshot });
+    }
+    return out.sort((a, b) => b.snapshot.takenAt.localeCompare(a.snapshot.takenAt));
   }
 
   const backedUpAt = async () => (await read<{ at: string }>(BACKUP_KEY).catch(() => undefined))?.at ?? null;
   const markBackedUp = (at = new Date().toISOString()) => apply([[BACKUP_KEY, { at }]]);
 
-  return { load, save, warning: () => warning, exportAll, restore, backedUpAt, markBackedUp };
+  return { load, save, warning: () => warning, exportAll, restore, snapshots, backedUpAt, markBackedUp };
 }
 
 function localStorageOrNone(): Storage | undefined {
@@ -261,5 +338,6 @@ export const save = store.save;
 export const storageWarning = store.warning;
 export const exportAll = store.exportAll;
 export const restore = store.restore;
+export const snapshots = store.snapshots;
 export const backedUpAt = store.backedUpAt;
 export const markBackedUp = store.markBackedUp;
