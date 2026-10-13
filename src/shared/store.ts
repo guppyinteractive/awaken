@@ -113,6 +113,8 @@ export interface Store {
   snapshots(): Promise<{ name: RecordName; snapshot: Snapshot }[]>;
   /** ISO time of the last backup, or null if never. */
   backedUpAt(): Promise<string | null>;
+  /** Stop saving, because another tab is in use. Until the page reloads, saves and restores do nothing. */
+  pause(): void;
   markBackedUp(at?: string): Promise<void>;
 }
 
@@ -248,7 +250,10 @@ export function createStore(deps: Deps): Store {
   /** Records saved since this page opened; the first save of each may take a snapshot. */
   const savedThisSession = new Set<RecordName>();
 
+  let paused = false;
+
   async function save(name: RecordName, data: unknown): Promise<void> {
+    if (paused) return;
     const record = wrap(name, structuredClone(data));
     const first = !savedThisSession.has(name);
     savedThisSession.add(name);
@@ -294,6 +299,7 @@ export function createStore(deps: Deps): Store {
   }
 
   async function restore(records: Partial<Record<RecordName, Stored>>, at?: string): Promise<void> {
+    if (paused) throw new Error('Another tab is in use.');
     const entries = Object.entries(records) as [RecordName, Stored][];
     for (const [name, stored] of entries) upgrade(name, stored); // throws before anything is written
     const plan: Plan = (cur) => {
@@ -318,9 +324,14 @@ export function createStore(deps: Deps): Store {
   }
 
   const backedUpAt = async () => (await read<{ at: string }>(BACKUP_KEY).catch(() => undefined))?.at ?? null;
-  const markBackedUp = (at = new Date().toISOString()) => apply([[BACKUP_KEY, { at }]]);
+  const markBackedUp = async (at = new Date().toISOString()) => {
+    if (!paused) await apply([[BACKUP_KEY, { at }]]);
+  };
 
-  return { load, save, warning: () => warning, exportAll, restore, snapshots, backedUpAt, markBackedUp };
+  return {
+    load, save, warning: () => warning, exportAll, restore, snapshots, backedUpAt, markBackedUp,
+    pause: () => { paused = true; },
+  };
 }
 
 function localStorageOrNone(): Storage | undefined {
@@ -341,3 +352,4 @@ export const restore = store.restore;
 export const snapshots = store.snapshots;
 export const backedUpAt = store.backedUpAt;
 export const markBackedUp = store.markBackedUp;
+export const pauseSaving = store.pause;

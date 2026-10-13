@@ -3,6 +3,7 @@ import './hunters.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
+import { oneTab } from '../shared/tabs';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -36,6 +37,7 @@ function newHunter(): Hunter {
 }
 
 const root = document.getElementById('app')!;
+await oneTab(); // before loading, so an inactive tab never saves
 const state = await load<Saved>('hunters', { hunters: [newHunter()], current: 0 });
 
 const hunter = () => state.hunters[state.current];

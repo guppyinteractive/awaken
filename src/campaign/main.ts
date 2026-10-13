@@ -3,6 +3,7 @@ import './campaign.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
+import { oneTab } from '../shared/tabs';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
 const CHAPTERS = 11;
@@ -33,6 +34,7 @@ const fresh = (): Campaign => ({
 
 const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
+await oneTab(); // before loading, so an inactive tab never saves
 const c = await load<Campaign>('campaign', fresh());
 const persist = () => void save('campaign', c);
 

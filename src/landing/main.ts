@@ -5,12 +5,14 @@ import {
   backedUpAt, exportAll, load, markBackedUp, restore, save, snapshots, UPGRADES, type RecordName, type Stored,
 } from '../shared/store';
 import { protect, protectIfInstalled, type Protection } from '../shared/persist';
+import { oneTab } from '../shared/tabs';
 import { backupStatus, describe, LABELS, makeBackup, parseBackup, shareOrDownload, type Status } from '../shared/backup';
 
 type Role = 'hunter' | 'keeper';
 
 const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
+await oneTab(); // before loading, so an inactive tab never saves
 let role = await load<Role | null>('role', null);
 let protection: Protection = await protectIfInstalled();
 /** The player tapped Protect and the browser said no. */

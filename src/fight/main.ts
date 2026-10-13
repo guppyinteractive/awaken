@@ -5,6 +5,7 @@ import { STATE_DEFS, STATE_IDS, type StateId } from '../engine/states';
 import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
+import { oneTab } from '../shared/tabs';
 import { sectorsSvg } from '../shared/sectors';
 import { MONSTERS } from '../shared/game';
 
@@ -29,6 +30,7 @@ const UNDO_LIMIT = 30;
 const LOG_LIMIT = 40;
 
 const root = document.getElementById('app')!;
+await oneTab(); // before loading, so an inactive tab never saves
 const saved = await load<Saved>('fight', { fight: null, undo: [], log: [] });
 let fight: Fight | null = saved.fight;
 let undo: Fight[] = saved.undo ?? [];
