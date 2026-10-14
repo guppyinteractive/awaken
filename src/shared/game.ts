@@ -25,3 +25,9 @@ export const RESOURCES = {
 
 export type ResourceKind = keyof typeof RESOURCES;
 export const RESOURCE_KINDS = Object.keys(RESOURCES) as ResourceKind[];
+
+/** The trophy monster with this name, ignoring case and surrounding spaces, or null. */
+export function trophyFor(name: string): string | null {
+  const key = name.trim().toLowerCase();
+  return MONSTERS.find((m) => m.toLowerCase() === key) ?? null;
+}

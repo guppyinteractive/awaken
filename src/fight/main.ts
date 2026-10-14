@@ -8,7 +8,7 @@ import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
-import { MONSTERS } from '../shared/game';
+import { MONSTERS, trophyFor } from '../shared/game';
 
 type Fight = E.Fight;
 
@@ -49,6 +49,28 @@ async function refreshStatus(): Promise<void> {
   render();
 }
 
+/**
+ * After a win, whether its trophy can go in the campaign tracker on this
+ * device: offered, just recorded, already there, or null (no campaign, a lost
+ * fight, or a monster that isn't a trophy).
+ */
+let trophy: 'offer' | 'recorded' | 'had' | null = null;
+
+async function checkTrophy(): Promise<void> {
+  const name = fight?.outcome === 'defeated' ? trophyFor(fight.monster) : null;
+  const campaign = name ? await load<{ trophies: string[] } | null>('campaign', null) : null;
+  trophy = !campaign ? null : !campaign.trophies.includes(name!) ? 'offer' : trophy === 'recorded' ? 'recorded' : 'had';
+}
+
+async function recordTrophy(): Promise<void> {
+  const name = trophyFor(fight!.monster)!;
+  const campaign = await load<{ trophies: string[] } | null>('campaign', null);
+  if (!campaign) return;
+  if (!campaign.trophies.includes(name)) await save('campaign', { ...campaign, trophies: [...campaign.trophies, name] });
+  trophy = 'recorded';
+  await refreshStatus();
+}
+
 // ---- State changes ---------------------------------------------------------
 
 function apply(result: E.Result): void {
@@ -61,7 +83,8 @@ function apply(result: E.Result): void {
   persist();
   if (ended) {
     message = null;
-    void refreshStatus();
+    trophy = null;
+    void checkTrophy().then(refreshStatus);
   }
   // A completed stance always opens the next-stance form.
   if (fight.stancePending && !fight.outcome && panel?.kind !== 'stance') {
@@ -251,6 +274,7 @@ function outcomeView(f: Fight): string {
     <div class="scrim"><div class="sheet">
       <h2>${won ? 'Monster defeated' : "Time's up"}</h2>
       <p class="note">${won ? `Defeated in round ${f.round}.` : `${f.monster} survived with ${f.health} health.`}</p>
+      ${trophyView(f)}
       <div class="nudge">
         <p class="note">Back up now, so the campaign and this fight survive if the browser clears its data.</p>
         <div class="row">
@@ -260,10 +284,25 @@ function outcomeView(f: Fight): string {
         ${messageHtml(message)}
       </div>
       <div class="row">
-        <button class="btn primary" data-act="new-fight">New fight</button>
+        <button class="btn ${trophy === 'offer' ? '' : 'primary'}" data-act="new-fight">New fight</button>
+        ${trophy ? `<a class="btn" href="${import.meta.env.BASE_URL}campaign/">Back to the campaign</a>` : ''}
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo last action</button>
       </div>
     </div></div>`;
+}
+
+function trophyView(f: Fight): string {
+  const name = esc(trophyFor(f.monster) ?? '');
+  switch (trophy) {
+    case 'offer': return `
+      <div class="row">
+        <button class="btn primary" data-act="record-trophy">Record the ${name} trophy</button>
+        <span class="note">Ticks it in the campaign tracker.</span>
+      </div>`;
+    case 'recorded': return `<p class="note" role="status"><strong>${name} trophy recorded</strong> in the campaign tracker.</p>`;
+    case 'had': return `<p class="note">The campaign tracker already has the ${name} trophy.</p>`;
+    default: return '';
+  }
 }
 
 function panelView(f: Fight): string {
@@ -472,6 +511,7 @@ root.addEventListener('click', async (ev) => {
       apply(E.removeState(f, id!));
       break;
     case 'undo': undoLast(); break;
+    case 'record-trophy': await recordTrophy(); break;
   }
 });
 
@@ -518,6 +558,7 @@ root.addEventListener('submit', (ev) => {
 if (fight?.stancePending && !fight.outcome) {
   panel = { kind: 'stance', mode: 'reveal', draft: E.blankStance(fight) };
 }
+if (fight?.outcome) await checkTrophy(); // reopened on the end-of-fight screen
 keepAwake();
 void protectIfInstalled();
 render();
