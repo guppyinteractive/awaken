@@ -4,7 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
-import { backUpPart } from '../shared/backup';
+import { backUpEverything, backUpPart, backupRowHtml, currentStatus, type Message } from '../shared/backup';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -41,8 +41,9 @@ const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
 const state = await load<Saved>('hunters', { hunters: [newHunter()], current: 0 });
 
-/** The outcome of the last "Back up this hunter". */
-let message: { text: string; alert?: boolean } | null = null;
+/** The outcome of the last backup. */
+let message: Message | null = null;
+let status = await currentStatus();
 
 const hunter = () => state.hunters[state.current];
 const persist = () => void save('hunters', state);
@@ -103,11 +104,8 @@ function render(): void {
           ${resources}
         </div>
       </div>
-      <div class="row">
-        <button class="btn small" data-act="backup">Back up this hunter</button>
-        ${state.hunters.length > 1 ? '<button class="btn alert small" data-act="remove">Remove this hunter</button>' : ''}
-      </div>
-      ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
+      ${backupRowHtml('<button class="btn small" data-act="backup">Back up this hunter</button>', status, message)}
+      ${state.hunters.length > 1 ? '<div class="row"><button class="btn alert small" data-act="remove">Remove this hunter</button></div>' : ''}
     </main>
     ${DISCLAIMER}`;
 }
@@ -119,7 +117,9 @@ root.addEventListener('click', async (ev) => {
   message = null;
   switch (t.dataset.act) {
     case 'backup':
-      message = await backUpPart('hunter', h);
+    case 'backup-all':
+      message = t.dataset.act === 'backup' ? await backUpPart('hunter', h) : await backUpEverything();
+      status = await currentStatus();
       render();
       return;
     case 'pick': state.current = Number(t.dataset.i); break;

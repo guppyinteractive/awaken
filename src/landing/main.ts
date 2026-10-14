@@ -2,12 +2,13 @@ import '../shared/wire.css';
 import './landing.css';
 import { DISCLAIMER, esc, topbar } from '../shared/util';
 import {
-  backedUpAt, exportAll, load, markBackedUp, restore, save, snapshots, UPGRADES, type RecordName, type Stored,
+  exportAll, load, restore, save, snapshots, UPGRADES, type RecordName, type Stored,
 } from '../shared/store';
 import { protect, protectIfInstalled, type Protection } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import {
-  backupStatus, contents, describe, LABELS, makeBackup, mergeHunter, parseBackup, partName, shareOrDownload, type Backup, type Status,
+  backUpEverything, contents, currentStatus, describe, LABELS, mergeHunter, messageHtml, parseBackup, partName, statusHtml,
+  type Backup, type Message, type Status,
 } from '../shared/backup';
 
 type Role = 'hunter' | 'keeper';
@@ -35,11 +36,7 @@ let pending: {
 } | null = null;
 let versions = await snapshots();
 /** The outcome of the last backup or restore, for the player. */
-let message: { text: string; alert?: boolean } | null = null;
-
-async function currentStatus(): Promise<Status> {
-  return backupStatus(await exportAll(), await backedUpAt());
-}
+let message: Message | null = null;
 
 const TOOLS = [
   { href: 'hunters/', name: 'Hunter tracker', who: 'Each player, on their own phone', what: 'Skill tree and your own materials, plants and elements.' },
@@ -151,10 +148,10 @@ function render(): void {
           <button class="btn" disabled>Install app</button>
           <button class="btn" data-act="backup">Back up</button>
           <button class="btn" data-act="restore">Restore</button>
-          <span class="note backup-status ${status.stale ? 'stale' : ''}">${status.stale ? '<strong>Back up soon.</strong> ' : ''}${esc(status.text)}</span>
+          ${statusHtml(status)}
         </div>
         <input type="file" accept=".json,application/json" data-act="restore-file" hidden>
-        ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
+        ${messageHtml(message)}
         ${restorePreview()}
         ${previousVersions()}
       </section>
@@ -163,15 +160,7 @@ function render(): void {
 }
 
 async function backUp(): Promise<void> {
-  const backup = makeBackup(await exportAll());
-  if (!Object.keys(backup.records).length) {
-    message = { text: 'There is no progress on this device to back up yet.' };
-  } else if (await shareOrDownload(backup)) {
-    await markBackedUp(backup.exportedAt);
-    message = { text: 'Backup made. Keep the file somewhere safe, like Drive or your group chat.' };
-  } else {
-    message = { text: 'Backup not sent.', alert: true };
-  }
+  message = await backUpEverything();
   status = await currentStatus();
   render();
 }

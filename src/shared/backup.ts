@@ -2,7 +2,10 @@
 // record as stored, with its version, so a file from any past version of the
 // app imports through the same upgrades as saved data.
 
-import { UPGRADES, currentVersion, upgrade, type RecordName, type Stored } from './store';
+import {
+  UPGRADES, backedUpAt, currentVersion, exportAll, markBackedUp, upgrade, type RecordName, type Stored,
+} from './store';
+import { esc } from './util';
 
 /** Format 2 added `only`. */
 export const FORMAT = 2;
@@ -242,10 +245,48 @@ export async function shareOrDownload(b: Backup, nav: Navigator = navigator, doc
   return true;
 }
 
+/** The outcome of a backup or restore, for the player. */
+export interface Message {
+  text: string;
+  alert?: boolean;
+}
+
+export const messageHtml = (m: Message | null, tag = 'p'): string =>
+  m ? `<${tag} class="note backup-message ${m.alert ? 'stale' : ''}" role="status">${esc(m.text)}</${tag}>` : '';
+
+/** "Last backed up" for this device's saved progress. */
+export async function currentStatus(): Promise<Status> {
+  return backupStatus(await exportAll(), await backedUpAt());
+}
+
+export const statusHtml = (s: Status): string =>
+  `<span class="note backup-status ${s.stale ? 'stale' : ''}">${s.stale ? '<strong>Back up soon.</strong> ' : ''}${esc(s.text)}</span>`;
+
+/** Back up everything on this device: share the file and say what happened. */
+export async function backUpEverything(): Promise<Message> {
+  const backup = makeBackup(await exportAll());
+  if (!Object.keys(backup.records).length) return { text: 'There is no progress on this device to back up yet.' };
+  if (!await shareOrDownload(backup)) return { text: 'Backup not sent.', alert: true };
+  await markBackedUp(backup.exportedAt);
+  return { text: 'Backup made. Keep the file somewhere safe, like Drive or your group chat.' };
+}
+
 /** A page's "Back up this …" button: share the file and say what happened. */
-export async function backUpPart(only: Part, data: unknown): Promise<{ text: string; alert?: boolean }> {
+export async function backUpPart(only: Part, data: unknown): Promise<Message> {
   const b = makePart(only, data);
   return await shareOrDownload(b)
     ? { text: `Backup of ${contents(b)} made. Restore it from the home page on any device.` }
     : { text: 'Backup not sent.', alert: true };
 }
+
+/**
+ * The backup row at the foot of a tracker: back up everything, the page's own
+ * buttons, and "Last backed up".
+ */
+export const backupRowHtml = (buttons: string, status: Status, message: Message | null): string => `
+  <div class="row backup-row">
+    <button class="btn small" data-act="backup-all">Back up everything</button>
+    ${buttons}
+    ${statusHtml(status)}
+  </div>
+  ${messageHtml(message)}`;

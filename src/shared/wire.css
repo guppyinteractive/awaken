@@ -242,3 +242,9 @@ a.btn { color: inherit; text-decoration: none; display: inline-flex; align-items
 /* Outcome of a backup or restore. */
 .backup-message { margin-top: 8px; }
 .backup-message.stale { color: var(--alert); }
+
+/* Suggests a backup after a chapter or a fight ends. */
+.nudge { display: grid; gap: 8px; }
+.box.nudge { border: 2px solid var(--ink); }
+.sheet .nudge { padding-top: 12px; border-top: 1px solid var(--line); }
+.nudge p, .nudge .backup-message { margin: 0; }

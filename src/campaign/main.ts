@@ -4,7 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
-import { backUpPart } from '../shared/backup';
+import { backUpEverything, backUpPart, backupRowHtml, currentStatus, messageHtml, type Message } from '../shared/backup';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
 const CHAPTERS = 11;
@@ -38,8 +38,11 @@ const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
 const c = await load<Campaign>('campaign', fresh());
 const persist = () => void save('campaign', c);
-/** The outcome of the last "Back up the campaign". */
-let message: { text: string; alert?: boolean } | null = null;
+/** The outcome of the last backup from the foot of the page. */
+let message: Message | null = null;
+let status = await currentStatus();
+/** A chapter just completed: suggest a backup, then show how it went. */
+let nudge: { chapter: number; result?: Message } | null = null;
 
 /** The chapter being played: the first one not yet completed. */
 function currentChapter(): number {
@@ -57,6 +60,20 @@ function levelPicker(name: 'herbalist' | 'forge', title: string): string {
       <div class="row">${[1, 2, 3].map((n) =>
         `<button class="toggle" aria-pressed="${c[name] >= n}" data-act="level" data-name="${name}" data-n="${n}">Lvl ${n}</button>`).join('')}
       </div></div>`;
+}
+
+function nudgeView(): string {
+  if (!nudge) return '';
+  return `
+    <section class="box nudge" role="status">
+      <div class="mid">Chapter ${nudge.chapter} complete</div>
+      ${nudge.result ? messageHtml(nudge.result) : `
+        <p class="note">Back up now, so this progress survives if the browser clears its data.</p>`}
+      <div class="row">
+        ${nudge.result ? '' : '<button class="btn primary" data-act="backup-all" data-from="nudge">Back up</button>'}
+        <button class="btn" data-act="dismiss-nudge">${nudge.result ? 'Close' : 'Not now'}</button>
+      </div>
+    </section>`;
 }
 
 function render(): void {
@@ -99,6 +116,7 @@ function render(): void {
         <div><div class="label">Now playing</div><div class="mid">Chapter ${chapter} · Tier ${tier}</div></div>
         <a class="btn primary" href="${BASE}fight/?tier=${tier}">Start a fight</a>
       </section>
+      ${nudgeView()}
 
       <div class="cols">
         <div class="col">
@@ -134,10 +152,7 @@ function render(): void {
           </section>
         </div>
       </div>
-      <div class="row">
-        <button class="btn small" data-act="backup">Back up the campaign</button>
-        ${message ? `<span class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</span>` : ''}
-      </div>
+      ${backupRowHtml('<button class="btn small" data-act="backup">Back up the campaign</button>', status, message)}
     </main>
     ${DISCLAIMER}`;
 }
@@ -149,10 +164,19 @@ root.addEventListener('click', async (ev) => {
   message = null;
   switch (t.dataset.act) {
     case 'backup':
-      message = await backUpPart('campaign', c);
+    case 'backup-all': {
+      const result = t.dataset.act === 'backup' ? await backUpPart('campaign', c) : await backUpEverything();
+      if (t.dataset.from === 'nudge') nudge = { ...nudge!, result };
+      else message = result;
+      status = await currentStatus();
       render();
       return;
-    case 'chapter': c.chapters[i] = !c.chapters[i]; break;
+    }
+    case 'dismiss-nudge': nudge = null; render(); return;
+    case 'chapter':
+      c.chapters[i] = !c.chapters[i];
+      nudge = c.chapters[i] ? { chapter: i + 1 } : nudge?.chapter === i + 1 ? null : nudge;
+      break;
     case 'quest': c.quests[i] = !c.quests[i]; break;
     case 'element': c.forgeElements[i] = !c.forgeElements[i]; break;
     case 'trophy': {

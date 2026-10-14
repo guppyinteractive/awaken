@@ -6,7 +6,7 @@ import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
-import { backUpPart } from '../shared/backup';
+import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
 import { MONSTERS } from '../shared/game';
 
@@ -39,18 +39,30 @@ let log: string[] = saved.log ?? [];
 let panel: Panel = null;
 let announcements: { what: string; sub: string; alert: boolean }[] = [];
 let announceTimer = 0;
-/** The outcome of the last "Back up this fight", shown in the menu. */
-let message: { text: string; alert?: boolean } | null = null;
+/** The outcome of the last backup, shown where it was made (the menu or the end of the fight). */
+let message: Message | null = null;
+let status = await currentStatus();
+
+/** Refresh "Last backed up" once the latest save is in. */
+async function refreshStatus(): Promise<void> {
+  status = await currentStatus();
+  render();
+}
 
 // ---- State changes ---------------------------------------------------------
 
 function apply(result: E.Result): void {
   if (!fight) return;
   undo = [...undo, fight].slice(-UNDO_LIMIT);
+  const ended = !fight.outcome && result.fight.outcome;
   fight = result.fight;
   log = [...result.events.map(E.describe), ...log].slice(0, LOG_LIMIT);
   queueAnnouncements(result.events);
   persist();
+  if (ended) {
+    message = null;
+    void refreshStatus();
+  }
   // A completed stance always opens the next-stance form.
   if (fight.stancePending && !fight.outcome && panel?.kind !== 'stance') {
     panel = { kind: 'stance', mode: 'reveal', draft: E.blankStance(fight) };
@@ -239,6 +251,14 @@ function outcomeView(f: Fight): string {
     <div class="scrim"><div class="sheet">
       <h2>${won ? 'Monster defeated' : "Time's up"}</h2>
       <p class="note">${won ? `Defeated in round ${f.round}.` : `${f.monster} survived with ${f.health} health.`}</p>
+      <div class="nudge">
+        <p class="note">Back up now, so the campaign and this fight survive if the browser clears its data.</p>
+        <div class="row">
+          <button class="btn" data-act="backup-all">Back up everything</button>
+          ${statusHtml(status)}
+        </div>
+        ${messageHtml(message)}
+      </div>
       <div class="row">
         <button class="btn primary" data-act="new-fight">New fight</button>
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo last action</button>
@@ -294,8 +314,10 @@ function menuView(): string {
         <button class="btn small" data-act="health-down">−1</button>
         <button class="btn small" data-act="health-up">+1</button></div>
       <button class="btn" data-act="log">Log</button>
+      <button class="btn" data-act="backup-all">Back up everything</button>
       <button class="btn" data-act="backup">Back up this fight</button>
-      ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
+      ${statusHtml(status)}
+      ${messageHtml(message)}
       <a class="btn" href="${import.meta.env.BASE_URL}">Home</a>
       <button class="btn alert" data-act="new-fight">New fight</button>
     </div>`);
@@ -404,10 +426,11 @@ root.addEventListener('click', async (ev) => {
   switch (act) {
     case 'close': panel = null; render(); break;
     case 'hit': if (!f.outcome) { panel = { kind: 'hit' }; render(); } break;
-    case 'menu': panel = { kind: 'menu' }; message = null; render(); break;
+    case 'menu': panel = { kind: 'menu' }; message = null; void refreshStatus(); break;
     case 'backup':
-      message = await backUpPart('fight', { fight, undo, log } satisfies Saved);
-      render();
+    case 'backup-all':
+      message = act === 'backup' ? await backUpPart('fight', { fight, undo, log } satisfies Saved) : await backUpEverything();
+      await refreshStatus();
       break;
     case 'log': panel = { kind: 'log' }; render(); break;
     case 'state': panel = { kind: 'state', id: id! }; render(); break;
