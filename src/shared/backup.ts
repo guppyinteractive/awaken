@@ -2,15 +2,27 @@
 // record as stored, with its version, so a file from any past version of the
 // app imports through the same upgrades as saved data.
 
-import { UPGRADES, upgrade, type RecordName, type Stored } from './store';
+import { UPGRADES, currentVersion, upgrade, type RecordName, type Stored } from './store';
 
-export const FORMAT = 1;
+/** Format 2 added `only`. */
+export const FORMAT = 2;
+
+/**
+ * A file that backs up one thing rather than everything. 'hunter' holds a
+ * hunters record with a single hunter; restoring it adds that hunter (or
+ * replaces the one with the same player name) and keeps the others.
+ */
+export type Part = 'hunter' | 'campaign' | 'fight';
+const PARTS: Part[] = ['hunter', 'campaign', 'fight'];
+const PART_RECORD: Record<Part, RecordName> = { hunter: 'hunters', campaign: 'campaign', fight: 'fight' };
 
 export interface Backup {
   app: 'awaken';
   format: number;
   /** ISO time the file was made. */
   exportedAt: string;
+  /** Set when the file backs up one thing; missing for a backup of everything. */
+  only?: Part;
   records: Partial<Record<RecordName, Stored>>;
 }
 
@@ -20,10 +32,52 @@ export function makeBackup(records: Partial<Record<RecordName, Stored>>, now = n
   return { app: 'awaken', format: FORMAT, exportedAt: now.toISOString(), records };
 }
 
+/**
+ * A backup of one thing from a page's current data: one hunter, the campaign,
+ * or the fight (as the fight page saves it).
+ */
+export function makePart(only: Part, data: unknown, now = new Date()): Backup {
+  const name = PART_RECORD[only];
+  const stored: Stored = {
+    version: currentVersion(name),
+    savedAt: now.toISOString(),
+    data: structuredClone(only === 'hunter' ? { hunters: [data], current: 0 } : data),
+  };
+  return { ...makeBackup({ [name]: stored }, now), only };
+}
+
+const slug = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 export function fileName(b: Backup): string {
   const d = new Date(b.exportedAt);
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `awaken-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`; // local date
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // local date
+  if (!b.only) return `awaken-backup-${date}.json`;
+  return ['awaken', b.only, slug(partName(b) ?? ''), date].filter(Boolean).join('-') + '.json';
+}
+
+/** The hunter's player name or the fight's monster, if the file has one. */
+export function partName(b: Backup): string | null {
+  try {
+    const name = PART_RECORD[b.only!];
+    const d = upgrade(name, b.records[name]!) as any;
+    if (b.only === 'hunter') return d.hunters[0].player.trim() || null;
+    if (b.only === 'fight') return d.fight?.monster || null;
+  } catch {
+    // Described generically.
+  }
+  return null;
+}
+
+/** What a file holds, for the restore question: "the hunter Sam", "everything". */
+export function contents(b: Backup): string {
+  const name = partName(b);
+  switch (b.only) {
+    case 'hunter': return name ? `the hunter ${name}` : 'a hunter';
+    case 'campaign': return 'the campaign';
+    case 'fight': return name ? `the fight against ${name}` : 'a fight';
+    default: return 'the backup';
+  }
 }
 
 /** Read a backup file. Throws an Error with a message for the player. */
@@ -54,7 +108,45 @@ export function parseBackup(text: string): Backup {
     records[name] = { version: stored.version, savedAt: String(stored.savedAt ?? ''), data: stored.data };
   }
   if (!Object.keys(records).length) throw new Error('This backup has no saved progress in it.');
-  return { app: 'awaken', format: b.format, exportedAt: String(b.exportedAt ?? ''), records };
+  const out: Backup = { app: 'awaken', format: b.format, exportedAt: String(b.exportedAt ?? ''), records };
+  if (b.only !== undefined) {
+    if (!PARTS.includes(b.only)) {
+      throw new Error('This backup was made by a newer version of the app. Reload the page to update, then try again.');
+    }
+    const name = PART_RECORD[b.only];
+    const hunters = records.hunters && (upgrade('hunters', records.hunters) as { hunters?: unknown }).hunters;
+    if (Object.keys(records).join() !== name || (b.only === 'hunter' && !(Array.isArray(hunters) && hunters.length === 1))) {
+      throw new Error('This backup is damaged and can\'t be restored.');
+    }
+    out.only = b.only;
+  }
+  return out;
+}
+
+interface Hunter { player: string; hunterClass: string; notes: string; skills: unknown; counts: unknown }
+
+/** A hunter nobody has filled in: no text, no skills, no resources. */
+const blank = (h: Hunter): boolean =>
+  !h.player.trim() && !h.hunterClass.trim() && !h.notes.trim() && !/true|[1-9]/.test(JSON.stringify([h.skills, h.counts]));
+
+/**
+ * Restoring a one-hunter file: the hunters record with that hunter added (in
+ * place of a blank one, if there is one), or in place of the device's hunter
+ * with the same player name, and shown first. `replaces` is the index of the
+ * hunter it replaces by name, or null.
+ */
+export function mergeHunter(file: Stored, device: Stored | undefined, now = new Date()): { record: Stored; replaces: number | null } {
+  const hunter = (upgrade('hunters', file) as { hunters: Hunter[] }).hunters[0];
+  const list = device ? [...(upgrade('hunters', device) as { hunters: Hunter[] }).hunters] : [];
+  const key = (h: Hunter) => h.player.trim().toLowerCase();
+  const found = key(hunter) ? list.findIndex((h) => key(h) === key(hunter)) : -1;
+  const empty = list.findIndex(blank);
+  const current = found >= 0 ? found : empty >= 0 ? empty : list.length;
+  list[current] = hunter;
+  return {
+    record: { version: currentVersion('hunters'), savedAt: now.toISOString(), data: { hunters: list, current } },
+    replaces: found >= 0 ? found : null,
+  };
 }
 
 export const LABELS: Record<RecordName, string> = {
@@ -148,4 +240,12 @@ export async function shareOrDownload(b: Backup, nav: Navigator = navigator, doc
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
   return true;
+}
+
+/** A page's "Back up this …" button: share the file and say what happened. */
+export async function backUpPart(only: Part, data: unknown): Promise<{ text: string; alert?: boolean }> {
+  const b = makePart(only, data);
+  return await shareOrDownload(b)
+    ? { text: `Backup of ${contents(b)} made. Restore it from the home page on any device.` }
+    : { text: 'Backup not sent.', alert: true };
 }

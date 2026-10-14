@@ -238,3 +238,7 @@ a.btn { color: inherit; text-decoration: none; display: inline-flex; align-items
 }
 .other-tab .box { max-width: 420px; display: grid; gap: 8px; border: 2px solid var(--ink); }
 .other-tab p { margin: 0; }
+
+/* Outcome of a backup or restore. */
+.backup-message { margin-top: 8px; }
+.backup-message.stale { color: var(--alert); }

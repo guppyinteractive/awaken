@@ -4,6 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { backUpPart } from '../shared/backup';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
@@ -39,6 +40,9 @@ function newHunter(): Hunter {
 const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
 const state = await load<Saved>('hunters', { hunters: [newHunter()], current: 0 });
+
+/** The outcome of the last "Back up this hunter". */
+let message: { text: string; alert?: boolean } | null = null;
 
 const hunter = () => state.hunters[state.current];
 const persist = () => void save('hunters', state);
@@ -99,16 +103,25 @@ function render(): void {
           ${resources}
         </div>
       </div>
-      ${state.hunters.length > 1 ? `<div class="row"><button class="btn alert small" data-act="remove">Remove this hunter</button></div>` : ''}
+      <div class="row">
+        <button class="btn small" data-act="backup">Back up this hunter</button>
+        ${state.hunters.length > 1 ? '<button class="btn alert small" data-act="remove">Remove this hunter</button>' : ''}
+      </div>
+      ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
     </main>
     ${DISCLAIMER}`;
 }
 
-root.addEventListener('click', (ev) => {
+root.addEventListener('click', async (ev) => {
   const t = (ev.target as Element).closest<HTMLElement>('[data-act]');
   if (!t) return;
   const h = hunter();
+  message = null;
   switch (t.dataset.act) {
+    case 'backup':
+      message = await backUpPart('hunter', h);
+      render();
+      return;
     case 'pick': state.current = Number(t.dataset.i); break;
     case 'add': state.hunters.push(newHunter()); state.current = state.hunters.length - 1; break;
     case 'remove':

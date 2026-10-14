@@ -6,7 +6,9 @@ import {
 } from '../shared/store';
 import { protect, protectIfInstalled, type Protection } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
-import { backupStatus, describe, LABELS, makeBackup, parseBackup, shareOrDownload, type Status } from '../shared/backup';
+import {
+  backupStatus, contents, describe, LABELS, makeBackup, mergeHunter, parseBackup, partName, shareOrDownload, type Backup, type Status,
+} from '../shared/backup';
 
 type Role = 'hunter' | 'keeper';
 
@@ -25,6 +27,8 @@ let pending: {
   question: string;
   records: Records;
   device: Records;
+  /** Said instead of describing the record and what it replaces. */
+  lines?: Partial<Record<RecordName, string>>;
   /** Set the last backup time to this (only for a backup file). */
   backedUpAt?: string;
   done: string;
@@ -68,8 +72,9 @@ const when = (iso: string) => {
 
 function restorePreview(): string {
   if (!pending) return '';
-  const { question, records, device } = pending;
+  const { question, records, device, lines } = pending;
   const rows = NAMES.flatMap((n) => {
+    if (lines?.[n]) return [`<li><strong>${esc(LABELS[n])}:</strong> ${esc(lines[n]!)}</li>`];
     if (records[n]) {
       return [`<li><strong>${esc(LABELS[n])}:</strong> ${esc(describe(n, records[n]!))}${
         device[n] ? ` <span class="note">(replaces ${esc(describe(n, device[n]!))})</span>` : ''}</li>`];
@@ -80,9 +85,11 @@ function restorePreview(): string {
     <div class="restore-preview" role="dialog" aria-label="Restore">
       <div class="mid">${esc(question)}</div>
       <ul>${rows.join('')}</ul>
-      <p class="note">This replaces the progress on this device. What it replaces is kept under Previous versions.</p>
+      <p class="note">${lines
+        ? 'The hunters as they are now are kept under Previous versions.'
+        : 'This replaces the progress on this device. What it replaces is kept under Previous versions.'}</p>
       <div class="row">
-        <button class="btn alert" data-act="restore-confirm">Replace my progress</button>
+        <button class="btn alert" data-act="restore-confirm">${lines ? 'Restore the hunter' : 'Replace my progress'}</button>
         <button class="btn" data-act="restore-cancel">Cancel</button>
       </div>
     </div>`;
@@ -175,13 +182,18 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
   if (!file) return;
   try {
     const backup = parseBackup(await file.text());
+    const device = await exportAll();
+    const what = `${contents(backup)} from ${when(backup.exportedAt)}`;
     pending = {
-      question: `Restore the backup from ${when(backup.exportedAt)}?`,
+      question: `Restore ${what}?`,
       records: backup.records,
-      device: await exportAll(),
-      backedUpAt: Number.isNaN(Date.parse(backup.exportedAt)) ? new Date().toISOString() : backup.exportedAt,
-      done: `Restored the backup from ${when(backup.exportedAt)}.`,
+      device,
+      // Only a backup of everything counts as backed up.
+      backedUpAt: backup.only ? undefined
+        : Number.isNaN(Date.parse(backup.exportedAt)) ? new Date().toISOString() : backup.exportedAt,
+      done: `Restored ${what}.`,
     };
+    if (backup.only === 'hunter') Object.assign(pending, oneHunter(backup, device));
     message = null;
   } catch (e) {
     pending = null;
@@ -189,6 +201,24 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
   }
   render();
   root.querySelector('.restore-preview, .backup-message')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+/** Restoring one hunter merges it into this device's hunters. */
+function oneHunter(backup: Backup, device: Records): Pick<NonNullable<typeof pending>, 'records' | 'lines'> {
+  let merged: ReturnType<typeof mergeHunter>;
+  try {
+    merged = mergeHunter(backup.records.hunters!, device.hunters);
+  } catch {
+    throw new Error("The hunters saved on this device can't be read, so this hunter can't be added to them.");
+  }
+  const { record, replaces } = merged;
+  const name = partName(backup) ?? 'an unnamed hunter';
+  const others = (record.data as { hunters: unknown[] }).hunters.length - 1;
+  const kept = others ? ` The other ${others === 1 ? 'hunter is' : `${others} hunters are`} kept.` : '';
+  return {
+    records: { hunters: record },
+    lines: { hunters: (replaces === null ? `adds ${name}.` : `${name} replaces the hunter with that name on this device.`) + kept },
+  };
 }
 
 async function confirmRestore(): Promise<void> {

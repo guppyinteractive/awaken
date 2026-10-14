@@ -17,8 +17,7 @@
 .tool { display: grid; gap: 4px; color: inherit; text-decoration: none; }
 .tool:hover { border-color: var(--muted); }
 .safety ol { margin: 4px 0 12px; padding-left: 20px; display: grid; gap: 4px; }
-.backup-status.stale, .backup-message.stale { color: var(--alert); }
-.backup-message { margin-top: 8px; }
+.backup-status.stale { color: var(--alert); }
 .restore-preview { margin-top: 12px; padding: 12px; border: 2px solid var(--alert); border-radius: var(--radius); display: grid; gap: 8px; }
 .restore-preview ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .versions { margin-top: 12px; }

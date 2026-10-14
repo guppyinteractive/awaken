@@ -6,6 +6,7 @@ import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { backUpPart } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
 import { MONSTERS } from '../shared/game';
 
@@ -38,6 +39,8 @@ let log: string[] = saved.log ?? [];
 let panel: Panel = null;
 let announcements: { what: string; sub: string; alert: boolean }[] = [];
 let announceTimer = 0;
+/** The outcome of the last "Back up this fight", shown in the menu. */
+let message: { text: string; alert?: boolean } | null = null;
 
 // ---- State changes ---------------------------------------------------------
 
@@ -291,6 +294,8 @@ function menuView(): string {
         <button class="btn small" data-act="health-down">−1</button>
         <button class="btn small" data-act="health-up">+1</button></div>
       <button class="btn" data-act="log">Log</button>
+      <button class="btn" data-act="backup">Back up this fight</button>
+      ${message ? `<p class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</p>` : ''}
       <a class="btn" href="${import.meta.env.BASE_URL}">Home</a>
       <button class="btn alert" data-act="new-fight">New fight</button>
     </div>`);
@@ -371,7 +376,7 @@ function syncDraft(): void {
   };
 }
 
-root.addEventListener('click', (ev) => {
+root.addEventListener('click', async (ev) => {
   const target = (ev.target as Element).closest<HTMLElement>('[data-act]');
   if (!target) return;
   const act = target.dataset.act!;
@@ -399,7 +404,11 @@ root.addEventListener('click', (ev) => {
   switch (act) {
     case 'close': panel = null; render(); break;
     case 'hit': if (!f.outcome) { panel = { kind: 'hit' }; render(); } break;
-    case 'menu': panel = { kind: 'menu' }; render(); break;
+    case 'menu': panel = { kind: 'menu' }; message = null; render(); break;
+    case 'backup':
+      message = await backUpPart('fight', { fight, undo, log } satisfies Saved);
+      render();
+      break;
     case 'log': panel = { kind: 'log' }; render(); break;
     case 'state': panel = { kind: 'state', id: id! }; render(); break;
     case 'deal': {

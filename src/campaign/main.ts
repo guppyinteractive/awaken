@@ -4,6 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { backUpPart } from '../shared/backup';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
 const CHAPTERS = 11;
@@ -37,6 +38,8 @@ const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
 const c = await load<Campaign>('campaign', fresh());
 const persist = () => void save('campaign', c);
+/** The outcome of the last "Back up the campaign". */
+let message: { text: string; alert?: boolean } | null = null;
 
 /** The chapter being played: the first one not yet completed. */
 function currentChapter(): number {
@@ -131,15 +134,24 @@ function render(): void {
           </section>
         </div>
       </div>
+      <div class="row">
+        <button class="btn small" data-act="backup">Back up the campaign</button>
+        ${message ? `<span class="note backup-message ${message.alert ? 'stale' : ''}" role="status">${esc(message.text)}</span>` : ''}
+      </div>
     </main>
     ${DISCLAIMER}`;
 }
 
-root.addEventListener('click', (ev) => {
+root.addEventListener('click', async (ev) => {
   const t = (ev.target as Element).closest<HTMLElement>('[data-act]');
   if (!t) return;
   const i = Number(t.dataset.i);
+  message = null;
   switch (t.dataset.act) {
+    case 'backup':
+      message = await backUpPart('campaign', c);
+      render();
+      return;
     case 'chapter': c.chapters[i] = !c.chapters[i]; break;
     case 'quest': c.quests[i] = !c.quests[i]; break;
     case 'element': c.forgeElements[i] = !c.forgeElements[i]; break;
