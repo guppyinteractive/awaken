@@ -19,7 +19,14 @@ type Upgrade = (data: any) => unknown;
  * version in src/shared/fixtures/.
  */
 export const UPGRADES: Record<RecordName, Upgrade[]> = {
-  fight: [],
+  fight: [
+    // v1 → v2: stances gained Resistant, Shield and bonus damage tokens.
+    (d: { fight: { stances: object[] } | null; undo?: { stances: object[] }[] }) => {
+      const up = <F extends { stances: object[] } | null>(f: F): F =>
+        f && { ...f, stances: f.stances.map((s) => ({ ...s, resistant: false, shield: 0, bonusDamage: 0 })) };
+      return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
+    },
+  ],
   hunters: [],
   campaign: [
     // v1 → v2: early wireframe builds stored trophies as {name, won} objects.

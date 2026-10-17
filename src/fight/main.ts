@@ -111,7 +111,10 @@ function persist(): void {
 function queueAnnouncements(events: E.FightEvent[]): void {
   for (const e of events) {
     if (e.kind === 'wound') announcements.push({ what: 'WOUND', sub: `Health ${e.health}`, alert: false });
-    if (e.kind === 'stance-complete') announcements.push({ what: 'STANCE CHANGE', sub: `Stance ${e.label} complete · ${e.carried} damage carried over`, alert: true });
+    if (e.kind === 'stance-complete') {
+      const damage = e.discarded ? `Resistant: ${e.discarded} damage discarded` : `${e.carried} damage carried over`;
+      announcements.push({ what: 'STANCE CHANGE', sub: `Stance ${e.label} complete · ${damage}`, alert: true });
+    }
     if (e.kind === 'unleash') announcements.push({ what: 'UNLEASH!', sub: `All hunters suffer ${e.damageValue}`, alert: true });
     if (e.kind === 'defeated') announcements.push({ what: 'MONSTER DEFEATED', sub: '', alert: false });
     if (e.kind === 'timeout') announcements.push({ what: "TIME'S UP", sub: 'Round 10 has ended', alert: true });
@@ -208,6 +211,12 @@ function boardView(f: Fight): string {
     ? f.outcome === 'defeated' ? 'Monster defeated' : "Time's up"
     : f.stancePending ? 'Stance change' : f.upkeepDone ? "Hunters' turns" : 'Heal, then monster upkeep';
 
+  const keywords = [
+    stance?.shield ? `<span class="keyword">Shield ${stance.shield}</span>` : '',
+    stance?.resistant ? '<span class="keyword">Resistant</span>' : '',
+  ].join('');
+  const bonus = stance?.bonusDamage ?? 0;
+
   const chips = [...new Set(f.states)].map((id) => {
     const n = E.stateCount(f, id);
     return `<button class="chip" data-act="state" data-id="${id}">${esc(STATE_DEFS[id].name)}${n > 1 ? ` ×${n}` : ''} <span class="i" aria-hidden="true">i</span></button>`;
@@ -233,7 +242,7 @@ function boardView(f: Fight): string {
         <div class="pips">${healthPips}</div>
         <div class="label spaced">Damage</div>
         <div class="row"><span class="mid">${f.damage} / ${Number.isFinite(t) ? t : '—'}</span>
-          <span class="note">${stance ? `toughness ${t} (${stance.toughness} × ${f.players})` : ''}</span></div>
+          <span class="note">${stance ? `toughness ${t} (${stance.toughness} × ${f.players})` : ''}</span>${keywords}</div>
         <div class="bar"><span style="width:${dmgPct}%"></span></div>
         ${f.stancePending && f.damage ? `<p class="note alert-text">${f.damage} damage carried over</p>` : ''}
         <p class="note tap-hint">Tap to enter a hit</p>
@@ -243,7 +252,13 @@ function boardView(f: Fight): string {
         <div class="label">Exposed sides</div>
         ${stance ? sectorsSvg(stance.exposed, !f.outcome) : '<p class="note">No stance yet</p>'}
         <div class="label spaced">${esc(f.monster)} attack damage</div>
-        <div class="big">${stance?.damageValue ?? '—'}</div>
+        <div class="row">
+          <span class="big">${stance ? E.attackDamage(f) : '—'}</span>
+          ${bonus ? `<span class="note">${stance!.damageValue} + ${bonus} bonus</span>` : ''}
+          ${stance && !f.outcome ? `<span class="spacer"></span>
+            <button class="btn small quiet" data-act="bonus-down" aria-label="Remove a bonus damage token" ${bonus ? '' : 'disabled'}>−</button>
+            <button class="btn small quiet" data-act="bonus-up" aria-label="Add a bonus damage token">+ Bonus</button>` : ''}
+        </div>
       </section>
 
       <section class="b-struggle box">
@@ -335,6 +350,7 @@ function sheet(title: string, body: string, closable = true): string {
 
 function hitView(f: Fight): string {
   const vuln = E.hasState(f, 'vulnerable');
+  const shield = E.currentStance(f)?.shield ?? 0;
   return sheet('Hit', `
     <div class="hit-grid">
       ${[1, 2, 3, 4, 5, 6].map((n) => `<button class="btn mid" data-act="deal" data-n="${n}">+${n}</button>`).join('')}
@@ -344,6 +360,7 @@ function hitView(f: Fight): string {
       <button class="btn primary" type="submit">Deal</button>
     </form>
     ${vuln ? `<label class="row"><input type="checkbox" name="vuln" id="use-vuln"> Use Vulnerable (×2 this hit)</label>` : ''}
+    ${shield ? `<p class="note">Enter the hit before the Shield: <strong>Shield ${shield}</strong> takes ${shield} off each hit${vuln ? ', after Vulnerable doubles it' : ''}.</p>` : ''}
     <div class="row">
       <button class="btn quiet small" data-act="damage-down">Damage −1 (correction)</button>
     </div>`);
@@ -411,6 +428,12 @@ function stanceView(f: Fight, mode: 'reveal' | 'edit', d: E.Stance): string {
           <span class="note ${badProgression ? 'alert-text' : ''}">Health now ${f.health}. ${badProgression ? 'Should be lower than current health.' : 'The stance card\'s progression value.'}</span></label>
         <label class="field"><span class="label">${esc(f.monster)} attack damage</span>
           <input name="damageValue" type="number" inputmode="numeric" min="0" value="${d.damageValue}"></label>
+        <label class="field"><span class="label">Shield</span>
+          <input name="shield" type="number" inputmode="numeric" min="0" value="${d.shield || ''}" placeholder="None">
+          <span class="note">Shield X on the card: each hit is reduced by X (p. 112).</span></label>
+        <div class="field"><span class="label">Resistant</span>
+          <label class="toggle radio"><input name="resistant" type="checkbox" ${d.resistant ? 'checked' : ''}> On the card</label>
+          <span class="note">No damage carries over when this stance completes (p. 111).</span></div>
       </div>
       <div class="field"><span class="label">Exposed sides (tap to toggle, front is at the bottom)</span>
         ${sectorsSvg(d.exposed, true, 'draft-sector')}</div>
@@ -440,6 +463,8 @@ function syncDraft(): void {
     toughness: Math.max(1, num('toughness', panel.draft.toughness)),
     progression: prog === '' ? null : Math.max(0, Number(prog)),
     damageValue: Math.max(0, num('damageValue', panel.draft.damageValue)),
+    shield: Math.max(0, Math.round(num('shield', 0))),
+    resistant: data.get('resistant') === 'on',
   };
 }
 
@@ -506,6 +531,8 @@ root.addEventListener('click', async (ev) => {
     case 'upkeep': apply(E.monsterUpkeep(f)); break;
     case 'end-round': apply(E.endRound(f)); break;
     case 'struggle-up': apply(E.gainStruggle(f, 1)); break;
+    case 'bonus-up': apply(E.changeBonus(f, 1)); break;
+    case 'bonus-down': apply(E.changeBonus(f, -1)); break;
     case 'struggle-down': apply(E.loseStruggle(f, 1)); break;
     case 'pick-state': panel = { kind: 'add-state' }; render(); break;
     case 'add-state':

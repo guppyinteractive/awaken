@@ -256,7 +256,7 @@ describe('snapshots', () => {
   it('copies what a restore replaces, so a rollback can be undone', async () => {
     await reload().save('fight', { n: 1 });
     const s = reload();
-    await s.restore({ fight: { ...rec('2026-10-01T00:00:00.000Z'), version: 1 } });
+    await s.restore({ fight: { ...rec('2026-10-01T00:00:00.000Z'), version: currentVersion('fight') } });
     expect(await reload().load('fight', null)).toEqual({ n: '2026-10-01T00:00:00.000Z' });
     const [first] = await reload().snapshots();
     expect(first.snapshot).toMatchObject({ data: { n: 1 }, reason: 'restore' });

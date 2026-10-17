@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addState, blankStance, canAddState, createFight, dealDamage, endRound, gainStruggle,
+  addState, attackDamage, blankStance, canAddState, changeBonus, createFight, dealDamage, describe as text, endRound, gainStruggle,
   inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
   type Fight, type Stance,
 } from './fight';
@@ -12,6 +12,9 @@ function stance(toughness: number, progression: number | null, damageValue = 3):
     progression,
     damageValue,
     exposed: { front: true, right: false, rear: true, left: false },
+    resistant: false,
+    shield: 0,
+    bonusDamage: 0,
   };
 }
 
@@ -155,5 +158,68 @@ describe('monster states', () => {
     expect(f.round).toBe(10);
     f = endRound(f).fight;
     expect(f.outcome).toBe('timeout');
+  });
+});
+
+describe('stance keywords: Shield and Resistant (pp. 111-112)', () => {
+  it('Shield X reduces each hit by X, never below 0', () => {
+    let f = fightWith(1, 10, { ...stance(5, null), shield: 2 });
+    const r = dealDamage(f, 3);
+    expect(r.fight.damage).toBe(1);
+    expect(r.events).toContainEqual({ kind: 'hit', base: 3, doubled: false, shield: 2, amount: 1 });
+    expect(text(r.events[0])).toBe('Hit 3 −2 (Shield) = 1');
+    f = dealDamage(r.fight, 1).fight;
+    expect(f.damage).toBe(1);
+  });
+
+  it('applies Shield after Vulnerable doubles the hit', () => {
+    let f = fightWith(1, 10, { ...stance(20, null), shield: 2 });
+    f = addState(f, 'vulnerable').fight;
+    const r = dealDamage(f, 3, true);
+    expect(r.fight.damage).toBe(4);
+    expect(text(r.events.find((e) => e.kind === 'hit')!)).toBe('Hit 3 ×2 (Vulnerable) −2 (Shield) = 4');
+  });
+
+  it('a plain hit logs as before', () => {
+    expect(text(dealDamage(fightWith(1, 10, stance(5, null)), 3).events[0])).toBe('Hit 3');
+  });
+
+  it('Resistant discards the excess damage when the stance completes', () => {
+    let f = fightWith(2, 9, { ...stance(2, 7), resistant: true });
+    const r = dealDamage(f, 13); // 2 wounds → health 7, 5 left over
+    f = r.fight;
+    expect(f.health).toBe(7);
+    expect(f.damage).toBe(0);
+    expect(r.events).toContainEqual({ kind: 'stance-complete', label: 'S', carried: 0, discarded: 5 });
+    expect(text(r.events.find((e) => e.kind === 'stance-complete')!)).toBe('Stance S complete, Resistant: 5 damage discarded');
+    // The next stance starts from nothing.
+    f = revealStance(f, stance(1, null)).fight;
+    expect(f.health).toBe(7);
+  });
+
+  it('a new stance starts without keywords or bonus tokens', () => {
+    const f = fightWith(1, 10, { ...stance(2, 9), resistant: true, shield: 1, bonusDamage: 2 });
+    expect(blankStance(f)).toMatchObject({ resistant: false, shield: 0, bonusDamage: 0 });
+  });
+});
+
+describe('bonus damage tokens (p. 104)', () => {
+  it('adds to the attack damage and to what hunters suffer on an Unleash', () => {
+    let f = fightWith(1, 10, stance(2, null, 3));
+    f = changeBonus(f, 1).fight;
+    f = changeBonus(f, 1).fight;
+    expect(attackDamage(f)).toBe(5);
+    const r = gainStruggle(f, 3);
+    expect(r.events).toContainEqual({ kind: 'unleash', damageValue: 5, resetTo: 1 });
+  });
+
+  it('never goes below 0, and goes with the stance card', () => {
+    let f = fightWith(1, 10, stance(2, 9, 3));
+    f = changeBonus(f, -1).fight;
+    expect(attackDamage(f)).toBe(3);
+    f = changeBonus(f, 2).fight;
+    f = dealDamage(f, 2).fight; // wound → health 9 → stance complete
+    f = revealStance(f, blankStance(f)).fight;
+    expect(attackDamage(f)).toBe(3);
   });
 });

@@ -22,6 +22,12 @@ export interface Stance {
   /** The stance's damage value (what hunters suffer on an Unleash). */
   damageValue: number;
   exposed: Record<Sector, boolean>;
+  /** Keyword Resistant (p. 111): no damage carries over when this stance completes. */
+  resistant: boolean;
+  /** Keyword Shield X (p. 112): each source of damage is reduced by X. 0 = no Shield. */
+  shield: number;
+  /** Bonus damage tokens on this stance card (p. 104), added to its damage value. */
+  bonusDamage: number;
 }
 
 export type Outcome = 'defeated' | 'timeout';
@@ -48,15 +54,18 @@ export interface Fight {
 }
 
 export type FightEvent =
-  | { kind: 'hit'; amount: number; doubled: boolean }
+  /** `base` as entered, ×2 if `doubled`, less `shield`, deals `amount`. */
+  | { kind: 'hit'; base: number; doubled: boolean; shield: number; amount: number }
   | { kind: 'wound'; health: number; source: 'damage' | 'effect' }
-  | { kind: 'stance-complete'; label: string; carried: number }
+  /** A Resistant stance discards its excess damage instead of carrying it. */
+  | { kind: 'stance-complete'; label: string; carried: number; discarded: number }
   | { kind: 'stance-revealed'; label: string }
   | { kind: 'defeated' }
   | { kind: 'struggle'; amount: number; total: number }
   | { kind: 'unleash'; damageValue: number; resetTo: number }
   | { kind: 'upkeep'; gained: number }
   | { kind: 'state-added'; id: StateId }
+  | { kind: 'bonus'; total: number }
   | { kind: 'state-removed'; id: StateId; reason: 'used' | 'removed' | 'expired' }
   | { kind: 'round'; round: number }
   | { kind: 'timeout' }
@@ -102,6 +111,10 @@ export function blankStance(fight: Fight): Stance {
     progression: null,
     damageValue: prev?.damageValue ?? 0,
     exposed: { front: false, right: false, rear: false, left: false },
+    // Keywords and bonus tokens belong to one stance card, so a new one starts without them.
+    resistant: false,
+    shield: 0,
+    bonusDamage: 0,
   };
 }
 
@@ -113,6 +126,12 @@ export function currentStance(fight: Fight): Stance | undefined {
 export function toughness(fight: Fight): number {
   const stance = currentStance(fight);
   return stance ? stance.toughness * fight.players : Infinity;
+}
+
+/** The monster's attack damage: the stance's damage value plus bonus damage tokens. */
+export function attackDamage(fight: Fight): number {
+  const stance = currentStance(fight);
+  return stance ? stance.damageValue + stance.bonusDamage : 0;
 }
 
 export function unleashAt(fight: Fight): number {
@@ -134,7 +153,11 @@ export function canAddState(fight: Fight, id: StateId): boolean {
 
 // ---- Actions -------------------------------------------------------------
 
-/** A hit for `amount` damage, optionally spending Vulnerable to double it. */
+/**
+ * A hit for `amount` damage, optionally spending Vulnerable to double it, then
+ * reduced by the stance's Shield. The rules don't order the two; Shield comes
+ * last because it reduces the damage the monster is actually dealt.
+ */
 export function dealDamage(fight: Fight, amount: number, useVulnerable = false): Result {
   const f = clone(fight);
   const events: FightEvent[] = [];
@@ -144,9 +167,10 @@ export function dealDamage(fight: Fight, amount: number, useVulnerable = false):
     f.states = f.states.filter((s) => s !== 'vulnerable');
     events.push({ kind: 'state-removed', id: 'vulnerable', reason: 'used' });
   }
-  const total = doubled ? amount * 2 : amount;
-  f.damage += total;
-  events.push({ kind: 'hit', amount: total, doubled });
+  const raw = doubled ? amount * 2 : amount;
+  const shield = Math.min(raw, currentStance(f)?.shield ?? 0);
+  f.damage += raw - shield;
+  events.push({ kind: 'hit', base: amount, doubled, shield, amount: raw - shield });
   resolveWounds(f, events);
   return { fight: f, events };
 }
@@ -254,6 +278,15 @@ export function endRound(fight: Fight): Result {
   return { fight: f, events };
 }
 
+/** Add or remove bonus damage tokens on the current stance. */
+export function changeBonus(fight: Fight, delta: number): Result {
+  const f = clone(fight);
+  const stance = currentStance(f);
+  if (!stance || f.outcome) return { fight: f, events: [] };
+  stance.bonusDamage = Math.max(0, stance.bonusDamage + delta);
+  return { fight: f, events: [{ kind: 'bonus', total: stance.bonusDamage }] };
+}
+
 /** Manual fixes that skip the rules (wrong tap, missed token). */
 export function correct(fight: Fight, field: 'health' | 'damage', delta: number): Result {
   const f = clone(fight);
@@ -284,7 +317,9 @@ function woundOnce(f: Fight, events: FightEvent[], source: 'damage' | 'effect'):
   const stance = currentStance(f);
   if (stance && stance.progression !== null && f.health <= stance.progression) {
     f.stancePending = true;
-    events.push({ kind: 'stance-complete', label: stance.label, carried: f.damage });
+    const discarded = stance.resistant ? f.damage : 0;
+    f.damage -= discarded;
+    events.push({ kind: 'stance-complete', label: stance.label, carried: f.damage, discarded });
   }
 }
 
@@ -295,7 +330,7 @@ function gainStruggleInto(f: Fight, amount: number, events: FightEvent[]): void 
     f.struggle = f.players;
     events.push({
       kind: 'unleash',
-      damageValue: currentStance(f)?.damageValue ?? 0,
+      damageValue: attackDamage(f),
       resetTo: f.struggle,
     });
   }
@@ -333,15 +368,21 @@ export function romanNumeral(n: number): string {
 /** One-line log text for an event. */
 export function describe(e: FightEvent): string {
   switch (e.kind) {
-    case 'hit': return e.doubled ? `Hit ${e.amount / 2} ×2 (Vulnerable) = ${e.amount}` : `Hit ${e.amount}`;
+    case 'hit': {
+      const steps = `${e.doubled ? ' ×2 (Vulnerable)' : ''}${e.shield ? ` −${e.shield} (Shield)` : ''}`;
+      return `Hit ${e.base}${steps ? `${steps} = ${e.amount}` : ''}`;
+    }
     case 'wound': return `Wound${e.source === 'effect' ? ' (card effect)' : ''} → health ${e.health}`;
-    case 'stance-complete': return `Stance ${e.label} complete, ${e.carried} damage carried over`;
+    case 'stance-complete': return e.discarded
+      ? `Stance ${e.label} complete, Resistant: ${e.discarded} damage discarded`
+      : `Stance ${e.label} complete, ${e.carried} damage carried over`;
     case 'stance-revealed': return `Stance ${e.label} revealed`;
     case 'defeated': return 'Monster defeated';
     case 'struggle': return `Struggle ${e.amount > 0 ? '+' : ''}${e.amount} → ${e.total}`;
     case 'unleash': return `Unleash! Hunters suffer ${e.damageValue}. Struggle reset to ${e.resetTo}`;
     case 'upkeep': return `Monster upkeep (+${e.gained} struggle)`;
     case 'state-added': return `${STATE_DEFS[e.id].name} added`;
+    case 'bonus': return `Bonus damage → +${e.total}`;
     case 'state-removed': return `${STATE_DEFS[e.id].name} ${e.reason}`;
     case 'round': return `Round ${e.round}`;
     case 'timeout': return "Time's up";
