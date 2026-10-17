@@ -13,6 +13,8 @@ export interface StateDef {
   /** Only one at a time; it can't be added while the monster already has it. Otherwise it stacks. */
   single: boolean;
   hint: string;
+  /** What to do at the table the moment it's added, if anything. Shown as a pop-up. */
+  onAdd?: string;
   page: number;
 }
 
@@ -23,6 +25,7 @@ export const STATE_DEFS: Record<StateId, StateDef> = {
     ends: 'start-of-next-round',
     single: true,
     hint: 'Cancels the next boost effect (the boost cost is still paid), then is removed. Otherwise removed at the start of the next round.',
+    onAdd: 'Turn the monster to face a sector of your choice.',
     page: 107,
   },
   vulnerable: {
@@ -38,7 +41,8 @@ export const STATE_DEFS: Record<StateId, StateDef> = {
     name: 'Stunned',
     ends: 'end-of-round',
     single: true,
-    hint: 'One behavior card in play is blocked from triggering this round. A player then reveals up to two attack cards and deals their weapon damage. Removed at the end of the round.',
+    hint: 'The behavior card with the stun token can\'t trigger this round. Removed at the end of the round.',
+    onAdd: 'Put the stun token on a behavior card in play: it can\'t trigger this round. Then a player reveals up to two attack cards and deals their weapon damage.',
     page: 113,
   },
   unstoppable: {

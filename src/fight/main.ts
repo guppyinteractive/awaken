@@ -37,7 +37,8 @@ let fight: Fight | null = saved.fight;
 let undo: Fight[] = saved.undo ?? [];
 let log: string[] = saved.log ?? [];
 let panel: Panel = null;
-let announcements: { what: string; sub: string; alert: boolean }[] = [];
+/** Big pop-ups over the board. A held one stays until tapped, because the table has something to do. */
+let announcements: { what: string; sub: string; alert: boolean; hold?: boolean }[] = [];
 let announceTimer = 0;
 /** The outcome of the last backup, shown where it was made (the menu or the end of the fight). */
 let message: Message | null = null;
@@ -114,6 +115,9 @@ function queueAnnouncements(events: E.FightEvent[]): void {
     if (e.kind === 'unleash') announcements.push({ what: 'UNLEASH!', sub: `All hunters suffer ${e.damageValue}`, alert: true });
     if (e.kind === 'defeated') announcements.push({ what: 'MONSTER DEFEATED', sub: '', alert: false });
     if (e.kind === 'timeout') announcements.push({ what: "TIME'S UP", sub: 'Round 10 has ended', alert: true });
+    if (e.kind === 'state-added' && STATE_DEFS[e.id].onAdd) {
+      announcements.push({ what: STATE_DEFS[e.id].name.toUpperCase(), sub: STATE_DEFS[e.id].onAdd!, alert: false, hold: true });
+    }
   }
   // Several wounds from one hit read better as one announcement.
   const wounds = announcements.filter((a) => a.what === 'WOUND');
@@ -129,7 +133,7 @@ function nextAnnouncement(): void {
   window.clearTimeout(announceTimer);
   announceTimer = 0;
   render();
-  if (announcements.length) {
+  if (announcements.length && !announcements[0].hold) {
     announceTimer = window.setTimeout(() => {
       announcements.shift();
       nextAnnouncement();
@@ -146,7 +150,8 @@ function render(): void {
     root.insertAdjacentHTML(
       'beforeend',
       `<div class="announce${a.alert ? ' alert' : ''}" data-act="dismiss-announce">
-        <div><div class="what">${esc(a.what)}</div><div class="sub">${esc(a.sub)}</div></div>
+        <div><div class="what">${esc(a.what)}</div><div class="sub">${esc(a.sub)}</div>${
+          a.hold ? '<div class="note">Tap to close</div>' : ''}</div>
       </div>`,
     );
   }
@@ -384,6 +389,7 @@ function stateView(f: Fight, id: StateId): string {
        <button class="btn small" data-act="remove-state" data-id="${id}" aria-label="Remove one ${esc(def.name)} token">−1</button>
        <button class="btn small" data-act="add-state" data-id="${id}" aria-label="Add one ${esc(def.name)} token">+1</button>`;
   return sheet(def.name, `
+    ${def.onAdd ? `<p><strong>When added:</strong> ${esc(def.onAdd)}</p>` : ''}
     <p>${esc(def.hint)}</p>
     <p class="note">Ends: ${ends} · Rulebook p. ${def.page}</p>
     <div class="row">${controls}</div>`);
