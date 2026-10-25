@@ -254,7 +254,7 @@ Out of scope for now: gear (weapon, helm, armor, item, potions) and anything fro
 | **Forge level** | 1–3 | Upgrades between fights |
 | **Forge elements** | The same 9 element kinds as the hunter sheet. Each is yes/no: is that element's forge unlocked? | Between fights |
 | **Trophies** | One mark per monster defeated, for the sheet's 22 monsters. Each has a **Fight** shortcut that starts a fight with it. | After winning a fight |
-| **Quests** | Numbered 1–49, marked when done | During the campaign |
+| **Quests** | Numbered 1–49, each locked, unlocked (circled) or completed (✕); tap to cycle | During the campaign |
 | **Achievements** | Free-text list (about 7 lines on the sheet) | During the campaign |
 
 Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem to be part of the normal campaign.
@@ -483,3 +483,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-16 | TV check passed: the cast fight board is readable on the TV. No size changes needed. |
 | 2026-10-17 | States with an effect when they're added (Confused: turn the monster; Stunned: block a behavior card, then a player reveals attack cards) pop up a full-screen instruction that stays until tapped, so the table sees it on the TV. The state's detail sheet repeats it under "When added". Vulnerable, Unstoppable and Acceleration have nothing to do when added. |
 | 2026-10-17 | Stance keywords and bonus damage (fight record v2, upgraded from v1): the stance form has **Shield** (a number) and **Resistant**; the board shows them as tags by the damage. Shield takes X off each hit after Vulnerable doubles it (the rules don't order the two, so the log shows each step). Resistant discards the excess damage when the stance completes, and the pop-up says how much. Bonus damage tokens are counted on the current stance with − / **+ Bonus** by the attack damage, add to what hunters suffer on an Unleash, and go with the stance card when it changes. |
+| 2026-10-25 | Quests have three states, like the campaign sheet (rulebook p. 54): **locked**, **unlocked** (circled) and **completed** (✕); a tap cycles through them. The sheet crosses out expired quests too, so they're marked completed rather than getting a fourth state. Campaign record v3: quests done in v2 become completed, the rest locked. |

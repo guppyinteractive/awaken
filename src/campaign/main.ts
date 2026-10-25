@@ -12,6 +12,11 @@ const QUESTS = 49;
 /** Chapters that start a new difficulty tier (which stance and peril cards to use). */
 const TIER_STARTS = [1, 4, 8];
 
+/** Like the campaign sheet: circled when unlocked, crossed when completed or expired. */
+type Quest = 'locked' | 'unlocked' | 'completed';
+const NEXT_QUEST: Record<Quest, Quest> = { locked: 'unlocked', unlocked: 'completed', completed: 'locked' };
+const QUEST_MARK: Record<Quest, string> = { locked: '', unlocked: '', completed: '✕' };
+
 interface Campaign {
   chapters: boolean[];
   herbalist: number;
@@ -19,7 +24,7 @@ interface Campaign {
   forgeElements: boolean[];
   /** Names of monsters defeated (trophies earned). */
   trophies: string[];
-  quests: boolean[];
+  quests: Quest[];
   achievements: string[];
 }
 
@@ -29,7 +34,7 @@ const fresh = (): Campaign => ({
   forge: 0,
   forgeElements: ELEMENTS.map(() => false),
   trophies: [],
-  quests: Array(QUESTS).fill(false),
+  quests: Array(QUESTS).fill('locked'),
   achievements: [],
 });
 
@@ -102,8 +107,9 @@ function render(): void {
     </div>`;
   }).join('');
 
-  const quests = c.quests.map((done, i) =>
-    `<button class="toggle quest" aria-pressed="${done}" data-act="quest" data-i="${i}">${i + 1}</button>`).join('');
+  const quests = c.quests.map((q, i) =>
+    `<button class="toggle quest ${q}" data-act="quest" data-i="${i}" aria-label="Quest ${i + 1}, ${q}">${i + 1}<span class="mark" aria-hidden="true">${QUEST_MARK[q]}</span></button>`).join('');
+  const count = (q: Quest) => c.quests.filter((x) => x === q).length;
 
   const achievements = c.achievements.map((a, i) => `
     <li class="row"><span class="grow">${esc(a)}</span>
@@ -147,7 +153,8 @@ function render(): void {
             <div class="trophies">${trophies}</div>
           </section>
           <section class="box">
-            <div class="label">Quests</div>
+            <div class="label">Quests · ${count('unlocked')} unlocked · ${count('completed')} completed</div>
+            <p class="note">Tap to cycle: locked, unlocked (circled), completed (✕). Mark expired quests completed, like the sheet.</p>
             <div class="quests">${quests}</div>
           </section>
         </div>
@@ -177,7 +184,7 @@ root.addEventListener('click', async (ev) => {
       c.chapters[i] = !c.chapters[i];
       nudge = c.chapters[i] ? { chapter: i + 1 } : nudge?.chapter === i + 1 ? null : nudge;
       break;
-    case 'quest': c.quests[i] = !c.quests[i]; break;
+    case 'quest': c.quests[i] = NEXT_QUEST[c.quests[i]]; break;
     case 'element': c.forgeElements[i] = !c.forgeElements[i]; break;
     case 'trophy': {
       const name = MONSTERS[i];

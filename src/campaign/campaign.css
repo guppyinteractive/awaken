@@ -9,7 +9,10 @@
 .trophies { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin-top: 8px; }
 .trophy { display: flex; gap: 8px; align-items: center; }
 .quests { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; margin-top: 8px; }
-.quest { padding: 4px; font-variant-numeric: tabular-nums; }
+.quest { position: relative; padding: 4px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.quest .mark { position: absolute; top: 1px; right: 4px; font-size: 11px; line-height: 1; }
+.quest.unlocked { color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; font-weight: 700; }
+.quest.completed { color: var(--paper); background: var(--fill); border-color: var(--fill); }
 .grow { flex: 1; min-width: 0; }
 .campaign input { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 10px; min-height: 44px; }
 ul.plain { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }

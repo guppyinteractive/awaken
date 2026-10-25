@@ -35,6 +35,8 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
       trophies: c.trophies.flatMap((t) =>
         typeof t === 'string' ? [t] : (t as { won: boolean }).won ? [(t as { name: string }).name] : []),
     }),
+    // v2 → v3: quests went from done or not to locked, unlocked or completed.
+    (c: { quests: boolean[] }) => ({ ...c, quests: c.quests.map((done) => (done ? 'completed' : 'locked')) }),
   ],
   role: [],
 };

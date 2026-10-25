@@ -81,6 +81,11 @@ describe('upgrades', () => {
     expect(out.trophies).toEqual(['Vyraxen', 'Korowon']);
   });
 
+  it('campaign v2 → v3 turns done quests into completed and the rest into locked', () => {
+    const out = upgrade('campaign', { version: 2, data: { quests: [true, false] } }) as { quests: string[] };
+    expect(out.quests).toEqual(['completed', 'locked']);
+  });
+
   it('refuses versions it does not know', () => {
     expect(() => upgrade('fight', { version: currentVersion('fight') + 1, data: {} })).toThrow();
     expect(() => upgrade('fight', { version: 0, data: {} })).toThrow();
@@ -117,25 +122,25 @@ describe('store', () => {
 
   it('imports wireframe localStorage data once, then clears it after a later load', async () => {
     local.setItem(legacyKey('campaign'), JSON.stringify(FIXTURES['campaign.v1']));
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
-    expect((await raw('campaign'))?.data).toEqual(FIXTURES['campaign.v2']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
+    expect((await raw('campaign'))?.data).toEqual(FIXTURES['campaign.v3']);
     expect(local.getItem(legacyKey('campaign'))).not.toBeNull(); // kept until the next load
 
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
     expect(local.getItem(legacyKey('campaign'))).toBeNull();
   });
 
   it('keeps a snapshot of the record from before an upgrade', async () => {
     const old: Stored = { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] };
     await putRaw('campaign', old);
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
     const [snap] = await reload().snapshots();
     expect(snap).toMatchObject({ name: 'campaign', snapshot: { ...old, reason: 'upgrade' } });
   });
 
   it('deletes the pre-upgrade copy left by older builds', async () => {
     await putRaw(preUpgradeKey('campaign'), { version: 1, savedAt: '', data: {} });
-    await putRaw('campaign', { version: 2, savedAt: '', data: FIXTURES['campaign.v2'] });
+    await putRaw('campaign', { version: currentVersion('campaign'), savedAt: '', data: FIXTURES[`campaign.v${currentVersion('campaign')}`] });
     await reload().load('campaign', null);
     expect(await raw(preUpgradeKey('campaign'))).toBeUndefined();
   });
@@ -173,7 +178,7 @@ describe('backup records', () => {
     await s.save('campaign', { other: true });
     await s.save('hunters', FIXTURES['hunters.v1']);
     await s.restore({ campaign: { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] } }, '2026-10-02T00:00:00.000Z');
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v2']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
     expect(await reload().load('hunters', null)).toEqual(FIXTURES['hunters.v1']);
     expect(await reload().backedUpAt()).toBe('2026-10-02T00:00:00.000Z');
   });
