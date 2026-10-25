@@ -103,7 +103,7 @@ Each state has:
 - **Adding:** one **+ Add state** button opens a picker that lists each state with when it ends; states already on (and not stacking) are disabled.
 - Players use and remove states whenever they like during the round. End Round only clears whatever is left.
 - **Left out on purpose:**
-  - **Hardened** (p. 109). It only happens through the Hardening track (Toramat, Dygorax, p. 95), and tracks stay off the board for now. Note for later: it stops damage carrying over and blocks Stun, Confuse, and Vulnerable.
+  - **Hardened** (p. 109). It comes from the Hardening track (0–3, p. 95), shown under the states when the fight has one: at 3 the damage left after wounds is discarded, and Stunned, Confused and Vulnerable can't be added. A **Hardened** tag sits by the damage.
   - **Charge** (Jekoros's track, p. 95).
   - **Blind** sits on peril cards, not the monster.
   - Stance-card keywords **Resistant** and **Shield X** (p. 111–112) change damage but belong to the stance, not a state. Candidates for the stance form.
@@ -429,7 +429,7 @@ The only risk left is a player clearing their data with no recent backup. A sync
 
 Tracked as decision issues in Beads (`bd list --type=decision`). Record the answer here and in the decision log when one closes.
 
-- [x] Do the extra tracks some monsters have (charge, hardening) belong on the board? Not for now; states that come from tracks (Hardened) are left out too.
+- [x] Do the extra tracks some monsters have (charge, hardening) belong on the board? Not for now; states that come from tracks (Hardened) are left out too. Revisited 2026-10-25: the Hardening track is on the board; Charge (Jekoros) is still out.
 - [x] Is `guppyinteractive.com` already pointed at GitHub Pages? Yes: www.guppyinteractive.com/awaken/ is live.
 - [ ] Does the keeper role need a name in the app ("Keeper", "Lead", "Host")?
 - [ ] Names and icons for the suite and the fight tracker. ("Awaken" is the repo and folder name.)
@@ -484,3 +484,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-17 | States with an effect when they're added (Confused: turn the monster; Stunned: block a behavior card, then a player reveals attack cards) pop up a full-screen instruction that stays until tapped, so the table sees it on the TV. The state's detail sheet repeats it under "When added". Vulnerable, Unstoppable and Acceleration have nothing to do when added. |
 | 2026-10-17 | Stance keywords and bonus damage (fight record v2, upgraded from v1): the stance form has **Shield** (a number) and **Resistant**; the board shows them as tags by the damage. Shield takes X off each hit after Vulnerable doubles it (the rules don't order the two, so the log shows each step). Resistant discards the excess damage when the stance completes, and the pop-up says how much. Bonus damage tokens are counted on the current stance with − / **+ Bonus** by the attack damage, add to what hunters suffer on an Unleash, and go with the stance card when it changes. |
 | 2026-10-25 | Quests have three states, like the campaign sheet (rulebook p. 54): **locked**, **unlocked** (circled) and **completed** (✕); a tap cycles through them. The sheet crosses out expired quests too, so they're marked completed rather than getting a fourth state. Campaign record v3: quests done in v2 become completed, the rest locked. |
+| 2026-10-25 | Hardening track (fight record v3; older fights have none): an optional 0–3 track, ticked at setup for Toramat and Dygorax and addable from the menu for any monster, since the rulebook may not list every monster that has one. At 3 the monster is Hardened (p. 109): after damage turns into wounds the rest is discarded (and none carries to the next stance), and Stunned, Confused and Vulnerable can't be added. States already on stay, because the rules only stop new ones. Reaching 3 pops up a held HARDENED notice; the tag by the damage opens what it does. |

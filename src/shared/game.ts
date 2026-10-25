@@ -17,6 +17,9 @@ export const MONSTERS = [
   'Reikal', 'Mamuraak', 'Nagarjas', 'Zekalith', 'Xitheros',
 ] as const;
 
+/** Monsters with a Hardening track (rulebook p. 95). */
+export const HARDENING_MONSTERS: readonly string[] = ['Toramat', 'Dygorax'];
+
 export const RESOURCES = {
   materials: { title: 'Materials', names: MATERIALS },
   plants: { title: 'Plants', names: PLANTS },

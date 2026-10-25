@@ -8,7 +8,7 @@ import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
-import { MONSTERS, trophyFor } from '../shared/game';
+import { HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
 
 type Fight = E.Fight;
 
@@ -16,6 +16,7 @@ type Panel =
   | null
   | { kind: 'hit' }
   | { kind: 'menu' }
+  | { kind: 'hardened' }
   | { kind: 'log' }
   | { kind: 'state'; id: StateId }
   | { kind: 'add-state' }
@@ -112,12 +113,16 @@ function queueAnnouncements(events: E.FightEvent[]): void {
   for (const e of events) {
     if (e.kind === 'wound') announcements.push({ what: 'WOUND', sub: `Health ${e.health}`, alert: false });
     if (e.kind === 'stance-complete') {
-      const damage = e.discarded ? `Resistant: ${e.discarded} damage discarded` : `${e.carried} damage carried over`;
+      const damage = e.discarded ? `${e.by}: ${e.discarded} damage discarded` : `${e.carried} damage carried over`;
       announcements.push({ what: 'STANCE CHANGE', sub: `Stance ${e.label} complete · ${damage}`, alert: true });
     }
     if (e.kind === 'unleash') announcements.push({ what: 'UNLEASH!', sub: `All hunters suffer ${e.damageValue}`, alert: true });
     if (e.kind === 'defeated') announcements.push({ what: 'MONSTER DEFEATED', sub: '', alert: false });
     if (e.kind === 'timeout') announcements.push({ what: "TIME'S UP", sub: 'Round 10 has ended', alert: true });
+    if (e.kind === 'hardening' && e.hardened && !e.was) {
+      announcements.push({ what: 'HARDENED', sub: "Damage left after each wound is lost. It can't be stunned, confused or made Vulnerable.", alert: true, hold: true });
+    }
+    if (e.kind === 'hardening' && e.was && !e.hardened) announcements.push({ what: 'NO LONGER HARDENED', sub: `Hardening ${e.level}`, alert: false });
     if (e.kind === 'state-added' && STATE_DEFS[e.id].onAdd) {
       announcements.push({ what: STATE_DEFS[e.id].name.toUpperCase(), sub: STATE_DEFS[e.id].onAdd!, alert: false, hold: true });
     }
@@ -129,6 +134,9 @@ function queueAnnouncements(events: E.FightEvent[]): void {
     announcements = announcements.filter((a) => a.what !== 'WOUND');
     announcements.unshift({ what: `${wounds.length} WOUNDS`, sub: last.sub, alert: false });
   }
+  const lost = events.find((e) => e.kind === 'discarded');
+  const wound = announcements.find((a) => a.what.endsWith('WOUND') || a.what.endsWith('WOUNDS'));
+  if (lost && wound) wound.sub += ` · ${lost.by}: ${lost.amount} damage discarded`;
   if (!announceTimer) nextAnnouncement();
 }
 
@@ -183,10 +191,28 @@ function setupView(): string {
             <option value="">Not set</option>
             ${[1, 2, 3].map((t) => `<option value="${t}" ${String(t) === tier ? 'selected' : ''}>Tier ${t}</option>`).join('')}
           </select></label>
+        <div class="field"><span class="label">Hardening track</span>
+          <label class="toggle radio"><input name="hardening" type="checkbox" ${hasHardening(monster) ? 'checked' : ''}> On the monster board</label>
+          <span class="note">${HARDENING_MONSTERS.join(' and ')} (p. 95). You can also add it later from the menu.</span></div>
         <button class="btn primary" type="submit">Next: enter Stance I</button>
       </form>
     </main>
     ${DISCLAIMER}`;
+}
+
+const hasHardening = (monster: string) => HARDENING_MONSTERS.includes(trophyFor(monster) ?? '');
+
+function hardeningView(f: Fight): string {
+  if (f.hardening === null) return '';
+  const pips = Array.from({ length: E.HARDENING_MAX }, (_, i) => `<span class="pip ${i < f.hardening! ? 'on' : ''}"></span>`).join('');
+  return `
+    <div class="row hardening">
+      <span class="label">Hardening</span><span class="mid">${f.hardening} / ${E.HARDENING_MAX}</span>
+      <span class="pips">${pips}</span>
+      <span class="spacer"></span>
+      <button class="btn small" data-act="hardening-down" aria-label="Hardening minus 1" ${f.outcome || !f.hardening ? 'disabled' : ''}>−</button>
+      <button class="btn small" data-act="hardening-up" aria-label="Hardening plus 1" ${f.outcome || E.isHardened(f) ? 'disabled' : ''}>+</button>
+    </div>`;
 }
 
 function boardView(f: Fight): string {
@@ -214,6 +240,7 @@ function boardView(f: Fight): string {
   const keywords = [
     stance?.shield ? `<span class="keyword">Shield ${stance.shield}</span>` : '',
     stance?.resistant ? '<span class="keyword">Resistant</span>' : '',
+    E.isHardened(f) ? '<button class="keyword" data-act="hardened-info" aria-label="Hardened: what it does">Hardened</button>' : '',
   ].join('');
   const bonus = stance?.bonusDamage ?? 0;
 
@@ -274,6 +301,7 @@ function boardView(f: Fight): string {
       <section class="b-states box">
         <div class="label">Monster states</div>
         <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" ${f.outcome ? 'disabled' : ''}>+ Add state</button></div>
+        ${hardeningView(f)}
       </section>
 
       <nav class="b-actions">
@@ -329,7 +357,14 @@ function panelView(f: Fight): string {
   if (!panel) return '';
   switch (panel.kind) {
     case 'hit': return hitView(f);
-    case 'menu': return menuView();
+    case 'menu': return menuView(f);
+    case 'hardened': return sheet('Hardened', `
+      <p>While the hardening level is at 3:</p>
+      <ul>
+        <li>Each time damage turns into wounds, the damage left over is discarded too, so none carries to the next stance.</li>
+        <li>It can't be stunned or confused, and Vulnerable can't be inflicted.</li>
+      </ul>
+      <p class="note">Rulebook pp. 95 and 109.</p>`);
     case 'log': return sheet('Log', `<ol class="log">${log.map((l) => `<li>${esc(l)}</li>`).join('') || '<li class="note">Nothing yet</li>'}</ol>`);
     case 'state': return stateView(f, panel.id);
     case 'add-state': return addStateView(f);
@@ -366,10 +401,11 @@ function hitView(f: Fight): string {
     </div>`);
 }
 
-function menuView(): string {
+function menuView(f: Fight): string {
   return sheet('Menu', `
     <div class="menu-list">
       <button class="btn" data-act="edit-stance">Edit current stance</button>
+      ${f.hardening === null && !f.outcome ? '<button class="btn" data-act="add-hardening">Add the Hardening track</button>' : ''}
       <button class="btn" data-act="wound-effect">+1 wound (card effect)</button>
       <div class="row"><span class="note grow">Health correction</span>
         <button class="btn small" data-act="health-down">−1</button>
@@ -390,9 +426,10 @@ function addStateView(f: Fight): string {
     <div class="menu-list">${STATE_IDS.map((id) => {
       const n = E.stateCount(f, id);
       const has = STATE_DEFS[id].single && n > 0;
+      const blocked = E.blockedByHardened(f, id);
       return `<button class="btn state-pick" data-act="add-state" data-id="${id}" ${E.canAddState(f, id) ? '' : 'disabled'}>
         <strong>${esc(STATE_DEFS[id].name)}</strong>
-        <span class="note">${has ? 'already on' : n ? `${n} on · stacks` : ends(id)}</span></button>`;
+        <span class="note">${blocked ? "can't while Hardened" : has ? 'already on' : n ? `${n} on · stacks` : ends(id)}</span></button>`;
     }).join('')}</div>`);
 }
 
@@ -532,6 +569,10 @@ root.addEventListener('click', async (ev) => {
     case 'end-round': apply(E.endRound(f)); break;
     case 'struggle-up': apply(E.gainStruggle(f, 1)); break;
     case 'bonus-up': apply(E.changeBonus(f, 1)); break;
+    case 'hardening-up': apply(E.changeHardening(f, 1)); break;
+    case 'hardening-down': apply(E.changeHardening(f, -1)); break;
+    case 'add-hardening': panel = null; apply(E.changeHardening(f, 0)); break;
+    case 'hardened-info': panel = { kind: 'hardened' }; render(); break;
     case 'bonus-down': apply(E.changeBonus(f, -1)); break;
     case 'struggle-down': apply(E.loseStruggle(f, 1)); break;
     case 'pick-state': panel = { kind: 'add-state' }; render(); break;
@@ -556,10 +597,11 @@ root.addEventListener('submit', (ev) => {
     case 'setup': {
       const tier = String(data.get('tier') ?? '');
       fight = E.createFight({
-        monster: String(data.get('monster') ?? ''),
+        monster: trophyFor(String(data.get('monster') ?? '')) ?? String(data.get('monster') ?? ''),
         players: Number(data.get('players') ?? 2),
         startingHealth: Math.max(1, Number(data.get('health')) || E.DEFAULT_HEALTH),
         tier: tier ? Number(tier) : null,
+        hardening: data.get('hardening') === 'on',
       });
       undo = [];
       log = [`New fight: ${fight.monster}, ${fight.players} players, health ${fight.health}`];
@@ -585,6 +627,14 @@ root.addEventListener('submit', (ev) => {
       break;
     }
   }
+});
+
+// Tick the Hardening track when a monster that has one is picked.
+root.addEventListener('input', (ev) => {
+  const input = ev.target as HTMLInputElement;
+  if (input.name !== 'monster' || !hasHardening(input.value)) return;
+  const box = input.form?.querySelector<HTMLInputElement>('input[name="hardening"]');
+  if (box) box.checked = true;
 });
 
 // Reopen the stance form after a reload mid-change.

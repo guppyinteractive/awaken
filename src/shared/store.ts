@@ -26,6 +26,11 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
         f && { ...f, stances: f.stances.map((s) => ({ ...s, resistant: false, shield: 0, bonusDamage: 0 })) };
       return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
     },
+    // v2 → v3: fights gained the Hardening track (null = the monster has none).
+    (d: { fight: object | null; undo?: object[] }) => {
+      const up = <F extends object | null>(f: F): F => f && { ...f, hardening: null };
+      return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
+    },
   ],
   hunters: [],
   campaign: [

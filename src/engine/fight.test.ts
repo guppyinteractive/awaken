@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addState, attackDamage, blankStance, canAddState, changeBonus, createFight, dealDamage, describe as text, endRound, gainStruggle,
+  addState, attackDamage, blankStance, canAddState, changeBonus, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
   inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
   type Fight, type Stance,
 } from './fight';
@@ -190,7 +190,7 @@ describe('stance keywords: Shield and Resistant (pp. 111-112)', () => {
     f = r.fight;
     expect(f.health).toBe(7);
     expect(f.damage).toBe(0);
-    expect(r.events).toContainEqual({ kind: 'stance-complete', label: 'S', carried: 0, discarded: 5 });
+    expect(r.events).toContainEqual({ kind: 'stance-complete', label: 'S', carried: 0, discarded: 5, by: 'Resistant' });
     expect(text(r.events.find((e) => e.kind === 'stance-complete')!)).toBe('Stance S complete, Resistant: 5 damage discarded');
     // The next stance starts from nothing.
     f = revealStance(f, stance(1, null)).fight;
@@ -221,5 +221,50 @@ describe('bonus damage tokens (p. 104)', () => {
     f = dealDamage(f, 2).fight; // wound → health 9 → stance complete
     f = revealStance(f, blankStance(f)).fight;
     expect(attackDamage(f)).toBe(3);
+  });
+});
+
+describe('Hardening track and Hardened (pp. 95, 109)', () => {
+  const hardened = (f: Fight) => changeHardening(f, 3).fight;
+
+  it('has no track unless asked for, runs 0–3, and is Hardened only at 3', () => {
+    expect(createFight({ monster: 'Test', players: 1 }).hardening).toBeNull();
+    let f = revealStance(createFight({ monster: 'Test', players: 1, hardening: true }), stance(2, null)).fight;
+    expect(f.hardening).toBe(0);
+    f = changeHardening(f, -1).fight;
+    expect(f.hardening).toBe(0);
+    let r = changeHardening(f, 5);
+    expect(r.fight.hardening).toBe(3);
+    expect(isHardened(r.fight)).toBe(true);
+    expect(text(r.events[0])).toBe('Hardening → 3 (Hardened)');
+    r = changeHardening(r.fight, -1);
+    expect(isHardened(r.fight)).toBe(false);
+    expect(text(r.events[0])).toBe('Hardening → 2 (no longer Hardened)');
+  });
+
+  it('removes the damage left over once it converts damage into wounds', () => {
+    let f = hardened(fightWith(1, 10, stance(3, null)));
+    let r = dealDamage(f, 2); // no wound: the damage stays
+    expect(r.fight.damage).toBe(2);
+    r = dealDamage(r.fight, 5); // 7 → 2 wounds, 1 left over, discarded
+    expect(r.fight.health).toBe(8);
+    expect(r.fight.damage).toBe(0);
+    expect(r.events).toContainEqual({ kind: 'discarded', amount: 1, by: 'Hardened' });
+    expect(text(r.events[r.events.length - 1])).toBe('Hardened: 1 damage discarded');
+  });
+
+  it('carries no damage into the next stance', () => {
+    const r = dealDamage(hardened(fightWith(1, 10, stance(2, 9))), 5);
+    expect(r.events).toContainEqual({ kind: 'stance-complete', label: 'S', carried: 0, discarded: 3, by: 'Hardened' });
+  });
+
+  it("can't be stunned, confused or made Vulnerable, but other states still work", () => {
+    const f = hardened(fightWith(1, 10, stance(2, null)));
+    for (const id of ['stunned', 'confused', 'vulnerable'] as const) {
+      expect(canAddState(f, id)).toBe(false);
+      expect(addState(f, id).events).toEqual([]);
+    }
+    expect(canAddState(f, 'acceleration')).toBe(true);
+    expect(canAddState(changeHardening(f, -1).fight, 'stunned')).toBe(true);
   });
 });

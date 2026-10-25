@@ -7,6 +7,10 @@ import { STATE_DEFS, type StateId } from './states';
 export const MAX_ROUNDS = 10;
 export const DEFAULT_HEALTH = 10;
 export const UNLEASH_PER_PLAYER = 3;
+/** The Hardening track runs 0–3; at 3 the monster is Hardened (pp. 95, 109). */
+export const HARDENING_MAX = 3;
+/** States that can't be added while the monster is Hardened (p. 109). */
+export const HARDENED_BLOCKS: readonly StateId[] = ['stunned', 'confused', 'vulnerable'];
 
 /** Sectors in exposure-diagram order. The front is drawn at the bottom. */
 export const SECTORS = ['front', 'right', 'rear', 'left'] as const;
@@ -50,6 +54,8 @@ export interface Fight {
   round: number;
   upkeepDone: boolean;
   states: StateId[];
+  /** Hardening track level, 0–3 (p. 95), or null when the monster has no track. */
+  hardening: number | null;
   outcome: Outcome | null;
 }
 
@@ -57,8 +63,11 @@ export type FightEvent =
   /** `base` as entered, ×2 if `doubled`, less `shield`, deals `amount`. */
   | { kind: 'hit'; base: number; doubled: boolean; shield: number; amount: number }
   | { kind: 'wound'; health: number; source: 'damage' | 'effect' }
-  /** A Resistant stance discards its excess damage instead of carrying it. */
-  | { kind: 'stance-complete'; label: string; carried: number; discarded: number }
+  /** A Resistant stance (or a Hardened monster) discards its excess damage instead of carrying it. */
+  | { kind: 'stance-complete'; label: string; carried: number; discarded: number; by: Discarder | null }
+  /** A Hardened monster loses the damage left after wounds. */
+  | { kind: 'discarded'; amount: number; by: Discarder }
+  | { kind: 'hardening'; level: number; hardened: boolean; was: boolean }
   | { kind: 'stance-revealed'; label: string }
   | { kind: 'defeated' }
   | { kind: 'struggle'; amount: number; total: number }
@@ -71,6 +80,8 @@ export type FightEvent =
   | { kind: 'timeout' }
   | { kind: 'correction'; text: string };
 
+export type Discarder = 'Resistant' | 'Hardened';
+
 export interface Result {
   fight: Fight;
   events: FightEvent[];
@@ -81,6 +92,8 @@ export interface NewFight {
   players: number;
   startingHealth?: number;
   tier?: number | null;
+  /** Start with the Hardening track at 0. */
+  hardening?: boolean;
 }
 
 export function createFight(opts: NewFight): Fight {
@@ -99,6 +112,7 @@ export function createFight(opts: NewFight): Fight {
     round: 1,
     upkeepDone: false,
     states: [],
+    hardening: opts.hardening ? 0 : null,
     outcome: null,
   };
 }
@@ -147,8 +161,17 @@ export function stateCount(fight: Fight, id: StateId): number {
   return fight.states.filter((s) => s === id).length;
 }
 
+export function isHardened(fight: Fight): boolean {
+  return fight.hardening === HARDENING_MAX;
+}
+
+/** Hardened blocks this state (p. 109). */
+export function blockedByHardened(fight: Fight, id: StateId): boolean {
+  return isHardened(fight) && HARDENED_BLOCKS.includes(id);
+}
+
 export function canAddState(fight: Fight, id: StateId): boolean {
-  return !(STATE_DEFS[id].single && hasState(fight, id));
+  return !(STATE_DEFS[id].single && hasState(fight, id)) && !blockedByHardened(fight, id);
 }
 
 // ---- Actions -------------------------------------------------------------
@@ -287,6 +310,15 @@ export function changeBonus(fight: Fight, delta: number): Result {
   return { fight: f, events: [{ kind: 'bonus', total: stance.bonusDamage }] };
 }
 
+/** Move the hardening marker. Starts the track if the fight didn't have one. */
+export function changeHardening(fight: Fight, delta: number): Result {
+  const f = clone(fight);
+  if (f.outcome) return { fight: f, events: [] };
+  const was = isHardened(f);
+  f.hardening = clamp((f.hardening ?? 0) + delta, 0, HARDENING_MAX);
+  return { fight: f, events: [{ kind: 'hardening', level: f.hardening, hardened: isHardened(f), was }] };
+}
+
 /** Manual fixes that skip the rules (wrong tap, missed token). */
 export function correct(fight: Fight, field: 'health' | 'damage', delta: number): Result {
   const f = clone(fight);
@@ -300,9 +332,16 @@ export function correct(fight: Fight, field: 'health' | 'damage', delta: number)
 
 /** Inflict wounds one at a time while damage covers the current toughness. */
 function resolveWounds(f: Fight, events: FightEvent[]): void {
+  let wounded = false;
   while (!f.outcome && !f.stancePending && f.damage >= toughness(f)) {
     f.damage -= toughness(f);
     woundOnce(f, events, 'damage');
+    wounded = true;
+  }
+  // Hardened: converting damage into wounds removes all of it (p. 109).
+  if (wounded && !f.outcome && !f.stancePending && isHardened(f) && f.damage > 0) {
+    events.push({ kind: 'discarded', amount: f.damage, by: 'Hardened' });
+    f.damage = 0;
   }
 }
 
@@ -317,9 +356,10 @@ function woundOnce(f: Fight, events: FightEvent[], source: 'damage' | 'effect'):
   const stance = currentStance(f);
   if (stance && stance.progression !== null && f.health <= stance.progression) {
     f.stancePending = true;
-    const discarded = stance.resistant ? f.damage : 0;
+    const by: Discarder | null = stance.resistant ? 'Resistant' : isHardened(f) ? 'Hardened' : null;
+    const discarded = by ? f.damage : 0;
     f.damage -= discarded;
-    events.push({ kind: 'stance-complete', label: stance.label, carried: f.damage, discarded });
+    events.push({ kind: 'stance-complete', label: stance.label, carried: f.damage, discarded, by: discarded ? by : null });
   }
 }
 
@@ -374,7 +414,7 @@ export function describe(e: FightEvent): string {
     }
     case 'wound': return `Wound${e.source === 'effect' ? ' (card effect)' : ''} → health ${e.health}`;
     case 'stance-complete': return e.discarded
-      ? `Stance ${e.label} complete, Resistant: ${e.discarded} damage discarded`
+      ? `Stance ${e.label} complete, ${e.by}: ${e.discarded} damage discarded`
       : `Stance ${e.label} complete, ${e.carried} damage carried over`;
     case 'stance-revealed': return `Stance ${e.label} revealed`;
     case 'defeated': return 'Monster defeated';
@@ -382,6 +422,8 @@ export function describe(e: FightEvent): string {
     case 'unleash': return `Unleash! Hunters suffer ${e.damageValue}. Struggle reset to ${e.resetTo}`;
     case 'upkeep': return `Monster upkeep (+${e.gained} struggle)`;
     case 'state-added': return `${STATE_DEFS[e.id].name} added`;
+    case 'discarded': return `${e.by}: ${e.amount} damage discarded`;
+    case 'hardening': return `Hardening → ${e.level}${e.hardened && !e.was ? ' (Hardened)' : e.was && !e.hardened ? ' (no longer Hardened)' : ''}`;
     case 'bonus': return `Bonus damage → +${e.total}`;
     case 'state-removed': return `${STATE_DEFS[e.id].name} ${e.reason}`;
     case 'round': return `Round ${e.round}`;
