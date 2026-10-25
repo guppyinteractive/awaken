@@ -430,7 +430,7 @@ function addStateView(f: Fight): string {
       const blocked = E.blockedByHardened(f, id);
       return `<button class="btn state-pick" data-act="add-state" data-id="${id}" ${E.canAddState(f, id) ? '' : 'disabled'}>
         <strong>${esc(STATE_DEFS[id].name)}</strong>
-        <span class="note">${blocked ? "can't while Hardened" : has ? 'already on' : n ? `${n} on · stacks` : ends(id)}</span></button>`;
+        <span class="note">${blocked ? "can't while Hardened" : has ? 'already on' : n ? `${n} of ${STATE_DEFS[id].max ?? '∞'} on` : ends(id)}</span></button>`;
     }).join('')}</div>`);
 }
 
@@ -442,7 +442,7 @@ function stateView(f: Fight, id: StateId): string {
     ? `<button class="btn alert" data-act="remove-state" data-id="${id}">Remove ${esc(def.name)}</button>`
     : `<span class="note grow">Tokens: <strong>${n}</strong></span>
        <button class="btn small" data-act="remove-state" data-id="${id}" aria-label="Remove one ${esc(def.name)} token">−1</button>
-       <button class="btn small" data-act="add-state" data-id="${id}" aria-label="Add one ${esc(def.name)} token">+1</button>`;
+       <button class="btn small" data-act="add-state" data-id="${id}" aria-label="Add one ${esc(def.name)} token" ${E.canAddState(f, id) ? '' : 'disabled'}>+1</button>`;
   return sheet(def.name, `
     ${def.onAdd ? `<p><strong>When added:</strong> ${esc(def.onAdd)}</p>` : ''}
     <p>${esc(def.hint)}</p>

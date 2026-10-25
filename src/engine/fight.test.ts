@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addState, attackDamage, blankStance, canAddState, changeAcceleration, changeBonus, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
-  inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, toughness,
+  inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
   type Fight, type Stance,
 } from './fight';
 
@@ -138,6 +138,19 @@ describe('monster states', () => {
     expect(f.states).toEqual(['unstoppable']);
     f = removeState(f, 'unstoppable').fight;
     expect(f.states).toEqual([]);
+  });
+
+  it('blind stacks up to the 2 tokens in the box, survives the round, and comes off by hand', () => {
+    let f = fightWith(2, 10, stance(2, 7));
+    f = addState(addState(f, 'blind').fight, 'blind').fight;
+    expect(stateCount(f, 'blind')).toBe(2);
+    expect(canAddState(f, 'blind')).toBe(false);
+    expect(addState(f, 'blind').events).toEqual([]);
+    f = endRound(endRound(f).fight).fight;
+    expect(stateCount(f, 'blind')).toBe(2);
+    f = removeState(f, 'blind').fight;
+    expect(stateCount(f, 'blind')).toBe(1);
+    expect(canAddState(changeHardening(f, 3).fight, 'blind')).toBe(true); // Hardened doesn't stop it
   });
 
   it('acceleration counts 0–4 tokens, each adding struggle at upkeep', () => {

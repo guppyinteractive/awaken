@@ -177,7 +177,9 @@ export function blockedByHardened(fight: Fight, id: StateId): boolean {
 }
 
 export function canAddState(fight: Fight, id: StateId): boolean {
-  return !(STATE_DEFS[id].single && hasState(fight, id)) && !blockedByHardened(fight, id);
+  const def = STATE_DEFS[id];
+  const full = def.single ? hasState(fight, id) : stateCount(fight, id) >= (def.max ?? Infinity);
+  return !full && !blockedByHardened(fight, id);
 }
 
 // ---- Actions -------------------------------------------------------------

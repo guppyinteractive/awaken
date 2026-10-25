@@ -2,7 +2,7 @@
 // rulebook page reference; never paste rulebook text here.
 
 // Acceleration is a 0–4 track on the fight (fight.ts), not a state.
-export type StateId = 'confused' | 'vulnerable' | 'stunned' | 'unstoppable';
+export type StateId = 'confused' | 'vulnerable' | 'stunned' | 'unstoppable' | 'blind';
 
 /** When a state is cleared automatically. */
 export type StateEnds = 'end-of-round' | 'start-of-next-round' | 'manual';
@@ -13,6 +13,8 @@ export interface StateDef {
   ends: StateEnds;
   /** Only one at a time; it can't be added while the monster already has it. Otherwise it stacks. */
   single: boolean;
+  /** For a state that stacks: how many tokens the game has. */
+  max?: number;
   hint: string;
   /** What to do at the table the moment it's added, if anything. Shown as a pop-up. */
   onAdd?: string;
@@ -53,6 +55,16 @@ export const STATE_DEFS: Record<StateId, StateDef> = {
     single: true,
     hint: 'After each behavior card triggers, the monster gains 1 Struggle. Lasts as long as the card that caused it says; remove it by hand.',
     page: 114,
+  },
+  blind: {
+    id: 'blind',
+    name: 'Blind',
+    ends: 'manual',
+    single: false,
+    max: 2,
+    hint: "The peril card under the blind token does nothing (it's blank). Take the token off at the start of the next turn of the player who blinded it. Perils immune to Blind can't be picked (p. 109).",
+    onAdd: "Put the blind token on a peril card in play (not one immune to Blind). That peril does nothing until the start of this player's next turn.",
+    page: 106,
   },
 };
 
