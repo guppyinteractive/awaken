@@ -9,6 +9,8 @@ export const DEFAULT_HEALTH = 10;
 export const UNLEASH_PER_PLAYER = 3;
 /** The Hardening track runs 0–3; at 3 the monster is Hardened (pp. 95, 109). */
 export const HARDENING_MAX = 3;
+/** Acceleration tokens (p. 106): the game has 4. Each adds 1 Struggle at monster upkeep. */
+export const ACCELERATION_MAX = 4;
 /** States that can't be added while the monster is Hardened (p. 109). */
 export const HARDENED_BLOCKS: readonly StateId[] = ['stunned', 'confused', 'vulnerable'];
 
@@ -54,6 +56,8 @@ export interface Fight {
   round: number;
   upkeepDone: boolean;
   states: StateId[];
+  /** Acceleration tokens on the monster board, 0–4 (p. 106). */
+  acceleration: number;
   /** Hardening track level, 0–3 (p. 95), or null when the monster has no track. */
   hardening: number | null;
   outcome: Outcome | null;
@@ -68,6 +72,7 @@ export type FightEvent =
   /** A Hardened monster loses the damage left after wounds. */
   | { kind: 'discarded'; amount: number; by: Discarder }
   | { kind: 'hardening'; level: number; hardened: boolean; was: boolean }
+  | { kind: 'acceleration'; level: number }
   | { kind: 'stance-revealed'; label: string }
   | { kind: 'defeated' }
   | { kind: 'struggle'; amount: number; total: number }
@@ -112,6 +117,7 @@ export function createFight(opts: NewFight): Fight {
     round: 1,
     upkeepDone: false,
     states: [],
+    acceleration: 0,
     hardening: opts.hardening ? 0 : null,
     outcome: null,
   };
@@ -243,7 +249,7 @@ export function monsterUpkeep(fight: Fight): Result {
   const events: FightEvent[] = [];
   if (f.outcome) return { fight: f, events };
   f.upkeepDone = true;
-  const gained = f.players + stateCount(f, 'acceleration');
+  const gained = f.players + f.acceleration;
   events.push({ kind: 'upkeep', gained });
   gainStruggleInto(f, gained, events);
   return { fight: f, events };
@@ -317,6 +323,14 @@ export function changeHardening(fight: Fight, delta: number): Result {
   const was = isHardened(f);
   f.hardening = clamp((f.hardening ?? 0) + delta, 0, HARDENING_MAX);
   return { fight: f, events: [{ kind: 'hardening', level: f.hardening, hardened: isHardened(f), was }] };
+}
+
+/** Add or remove Acceleration tokens, 0–4. */
+export function changeAcceleration(fight: Fight, delta: number): Result {
+  const f = clone(fight);
+  if (f.outcome) return { fight: f, events: [] };
+  f.acceleration = clamp(f.acceleration + delta, 0, ACCELERATION_MAX);
+  return { fight: f, events: [{ kind: 'acceleration', level: f.acceleration }] };
 }
 
 /** Manual fixes that skip the rules (wrong tap, missed token). */
@@ -424,6 +438,7 @@ export function describe(e: FightEvent): string {
     case 'state-added': return `${STATE_DEFS[e.id].name} added`;
     case 'discarded': return `${e.by}: ${e.amount} damage discarded`;
     case 'hardening': return `Hardening → ${e.level}${e.hardened && !e.was ? ' (Hardened)' : e.was && !e.hardened ? ' (no longer Hardened)' : ''}`;
+    case 'acceleration': return `Acceleration → ${e.level}`;
     case 'bonus': return `Bonus damage → +${e.total}`;
     case 'state-removed': return `${STATE_DEFS[e.id].name} ${e.reason}`;
     case 'round': return `Round ${e.round}`;

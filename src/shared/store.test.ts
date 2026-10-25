@@ -81,6 +81,15 @@ describe('upgrades', () => {
     expect(out.trophies).toEqual(['Vyraxen', 'Korowon']);
   });
 
+  it('fight v3 → v4 turns Acceleration states into a count of tokens, at most 4', () => {
+    const f = (states: string[]) => ({ states, round: 1 });
+    const out = upgrade('fight', { version: 3, data: { fight: f(['acceleration', 'stunned', 'acceleration']), undo: [f(Array(5).fill('acceleration'))] } });
+    expect(out).toEqual({
+      fight: { states: ['stunned'], round: 1, acceleration: 2 },
+      undo: [{ states: [], round: 1, acceleration: 4 }],
+    });
+  });
+
   it('campaign v2 → v3 turns done quests into completed and the rest into locked', () => {
     const out = upgrade('campaign', { version: 2, data: { quests: [true, false] } }) as { quests: string[] };
     expect(out.quests).toEqual(['completed', 'locked']);

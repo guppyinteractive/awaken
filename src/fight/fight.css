@@ -97,11 +97,13 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
   .b-actions .btn, .board .btn, .board .chip { min-height: 40px; padding: 4px 10px; }
   .board .chip { min-height: 32px; font-size: 13px; }
   .b-states .row { gap: 4px; }
-  /* The Hardening track joins the states row, so the board still fits. */
+  /* The tracks join the states row, so the board still fits. */
   .b-states { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-  .b-states .hardening { flex: 1; border: 0; padding: 0; }
-  .hardening .pips { display: none; }
-  .b-states .hardening .label { display: inline; }
+  .b-states .track { flex: 0 1 auto; flex-wrap: nowrap; border: 0; padding: 0; gap: 4px; }
+  .track .pips, .track .spacer { display: none; }
+  .b-states .track .label { display: inline; min-width: 0; letter-spacing: 0.02em; }
+  .board .track .mid { font-size: 4.5vh; white-space: nowrap; }
+  .board .track .btn { min-height: 32px; min-width: 32px; padding: 0 6px; }
 }
 
 /* Stance keywords (Shield X, Resistant) next to the damage. */
@@ -115,7 +117,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
   white-space: nowrap;
 }
 
-/* Hardening track (Toramat, Dygorax) under the states. */
-.hardening { padding-top: 8px; border-top: 1px solid var(--line); }
-.hardening .label { margin: 0; }
+/* Acceleration and Hardening tracks under the states. */
+.track { padding-top: 8px; border-top: 1px solid var(--line); }
+.track .label { margin: 0; min-width: 7.5em; }
 button.keyword { background: var(--panel); color: inherit; font: inherit; font-weight: 700; cursor: pointer; min-height: 32px; }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addState, attackDamage, blankStance, canAddState, changeBonus, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
-  inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
+  addState, attackDamage, blankStance, canAddState, changeAcceleration, changeBonus, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
+  inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, toughness,
   type Fight, type Stance,
 } from './fight';
 
@@ -140,16 +140,15 @@ describe('monster states', () => {
     expect(f.states).toEqual([]);
   });
 
-  it('acceleration stacks, adds struggle at upkeep, and is removed one token at a time', () => {
+  it('acceleration counts 0–4 tokens, each adding struggle at upkeep', () => {
     let f = fightWith(2, 10, stance(2, 7));
-    f = addState(f, 'acceleration').fight;
-    f = addState(f, 'acceleration').fight;
-    expect(stateCount(f, 'acceleration')).toBe(2);
+    f = changeAcceleration(f, 2).fight;
     const r = monsterUpkeep(f); // 2 players + 2 tokens
     expect(r.events).toContainEqual({ kind: 'upkeep', gained: 4 });
     expect(r.fight.struggle).toBe(4);
-    f = removeState(endRound(r.fight).fight, 'acceleration').fight;
-    expect(stateCount(f, 'acceleration')).toBe(1);
+    expect(text(changeAcceleration(f, 1).events[0])).toBe('Acceleration → 3');
+    expect(changeAcceleration(f, 9).fight.acceleration).toBe(4);
+    expect(changeAcceleration(f, -9).fight.acceleration).toBe(0);
   });
 
   it('times out after round 10', () => {
@@ -264,7 +263,7 @@ describe('Hardening track and Hardened (pp. 95, 109)', () => {
       expect(canAddState(f, id)).toBe(false);
       expect(addState(f, id).events).toEqual([]);
     }
-    expect(canAddState(f, 'acceleration')).toBe(true);
+    expect(canAddState(f, 'unstoppable')).toBe(true);
     expect(canAddState(changeHardening(f, -1).fight, 'stunned')).toBe(true);
   });
 });

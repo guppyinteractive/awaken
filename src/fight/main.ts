@@ -202,16 +202,16 @@ function setupView(): string {
 
 const hasHardening = (monster: string) => HARDENING_MONSTERS.includes(trophyFor(monster) ?? '');
 
-function hardeningView(f: Fight): string {
-  if (f.hardening === null) return '';
-  const pips = Array.from({ length: E.HARDENING_MAX }, (_, i) => `<span class="pip ${i < f.hardening! ? 'on' : ''}"></span>`).join('');
+/** A 0–max counter on the monster board (Acceleration, Hardening). */
+function trackView(f: Fight, name: string, act: string, level: number, max: number): string {
+  const pips = Array.from({ length: max }, (_, i) => `<span class="pip ${i < level ? 'on' : ''}"></span>`).join('');
   return `
-    <div class="row hardening">
-      <span class="label">Hardening</span><span class="mid">${f.hardening} / ${E.HARDENING_MAX}</span>
+    <div class="row track">
+      <span class="label">${name}</span><span class="mid">${level} / ${max}</span>
       <span class="pips">${pips}</span>
       <span class="spacer"></span>
-      <button class="btn small" data-act="hardening-down" aria-label="Hardening minus 1" ${f.outcome || !f.hardening ? 'disabled' : ''}>−</button>
-      <button class="btn small" data-act="hardening-up" aria-label="Hardening plus 1" ${f.outcome || E.isHardened(f) ? 'disabled' : ''}>+</button>
+      <button class="btn small" data-act="${act}-down" aria-label="${name} minus 1" ${f.outcome || !level ? 'disabled' : ''}>−</button>
+      <button class="btn small" data-act="${act}-up" aria-label="${name} plus 1" ${f.outcome || level >= max ? 'disabled' : ''}>+</button>
     </div>`;
 }
 
@@ -301,12 +301,13 @@ function boardView(f: Fight): string {
       <section class="b-states box">
         <div class="label">Monster states</div>
         <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" ${f.outcome ? 'disabled' : ''}>+ Add state</button></div>
-        ${hardeningView(f)}
+        ${trackView(f, 'Acceleration', 'acceleration', f.acceleration, E.ACCELERATION_MAX)}
+        ${f.hardening === null ? '' : trackView(f, 'Hardening', 'hardening', f.hardening, E.HARDENING_MAX)}
       </section>
 
       <nav class="b-actions">
         <button class="btn ${f.upkeepDone ? '' : 'primary'}" data-act="upkeep" ${f.outcome || f.stancePending ? 'disabled' : ''}>
-          ${f.upkeepDone ? 'Upkeep done' : `Monster upkeep (+${f.players + E.stateCount(f, 'acceleration')})`}</button>
+          ${f.upkeepDone ? 'Upkeep done' : `Monster upkeep (+${f.players + f.acceleration})`}</button>
         <button class="btn" data-act="end-round" ${f.outcome || f.stancePending ? 'disabled' : ''}>End round</button>
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo</button>
         <button class="btn" data-act="menu">Menu</button>
@@ -569,6 +570,8 @@ root.addEventListener('click', async (ev) => {
     case 'end-round': apply(E.endRound(f)); break;
     case 'struggle-up': apply(E.gainStruggle(f, 1)); break;
     case 'bonus-up': apply(E.changeBonus(f, 1)); break;
+    case 'acceleration-up': apply(E.changeAcceleration(f, 1)); break;
+    case 'acceleration-down': apply(E.changeAcceleration(f, -1)); break;
     case 'hardening-up': apply(E.changeHardening(f, 1)); break;
     case 'hardening-down': apply(E.changeHardening(f, -1)); break;
     case 'add-hardening': panel = null; apply(E.changeHardening(f, 0)); break;

@@ -85,7 +85,7 @@ Struggle is added at upkeep instead of at end of round because the order matters
 
 ### Monster states
 
-**Built now:** every monster state in the rulebook glossary that doesn't come from a monster-specific track: Confused, Vulnerable, Stunned, Unstoppable, and Acceleration.
+**Built now:** every monster state in the rulebook glossary that doesn't come from a monster-specific track: Confused, Vulnerable, Stunned and Unstoppable. Acceleration is a 0–4 track under the states (see below).
 
 Each state has:
 - **When it ends:** *end of this round*, *start of next round*, or *only when removed*.
@@ -98,7 +98,7 @@ Each state has:
 | **Vulnerable** (p. 114) | End of this round, or earlier when used | One | Hit entry offers **"×2, use Vulnerable"**, which doubles that one hit and removes the chip. It can't be used on the hit that applied it. |
 | **Stunned** (p. 113) | End of this round | One | Chip and hint only (the blocked behavior card and the bonus attack happen on the table). |
 | **Unstoppable** (p. 114) | Only when removed (the causing card sets how long) | One | Chip and hint. The +1 Struggle per triggered behavior is entered with Struggle +. |
-| **Acceleration** (p. 106) | Only when removed | Stacks (chip shows ×N) | Monster upkeep adds 1 Struggle per token on top of 1 per player. The chip's sheet has −1 / +1. |
+| **Acceleration** (p. 106) | Only when removed | A 0–4 track (the game has 4 tokens), always on the board | Monster upkeep adds 1 Struggle per token on top of 1 per player. − / + beside it. |
 
 - **Adding:** one **+ Add state** button opens a picker that lists each state with when it ends; states already on (and not stacking) are disabled.
 - Players use and remove states whenever they like during the round. End Round only clears whatever is left.
@@ -485,3 +485,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-17 | Stance keywords and bonus damage (fight record v2, upgraded from v1): the stance form has **Shield** (a number) and **Resistant**; the board shows them as tags by the damage. Shield takes X off each hit after Vulnerable doubles it (the rules don't order the two, so the log shows each step). Resistant discards the excess damage when the stance completes, and the pop-up says how much. Bonus damage tokens are counted on the current stance with − / **+ Bonus** by the attack damage, add to what hunters suffer on an Unleash, and go with the stance card when it changes. |
 | 2026-10-25 | Quests have three states, like the campaign sheet (rulebook p. 54): **locked**, **unlocked** (circled) and **completed** (✕); a tap cycles through them. The sheet crosses out expired quests too, so they're marked completed rather than getting a fourth state. Campaign record v3: quests done in v2 become completed, the rest locked. |
 | 2026-10-25 | Hardening track (fight record v3; older fights have none): an optional 0–3 track, ticked at setup for Toramat and Dygorax and addable from the menu for any monster, since the rulebook may not list every monster that has one. At 3 the monster is Hardened (p. 109): after damage turns into wounds the rest is discarded (and none carries to the next stance), and Stunned, Confused and Vulnerable can't be added. States already on stay, because the rules only stop new ones. Reaching 3 pops up a held HARDENED notice; the tag by the damage opens what it does. |
+| 2026-10-25 | Acceleration moved from a stacking state to a 0–4 track under the states, next to Hardening (fight record v4: Acceleration states become the count, at most 4). Any monster's cards can add it, so it's always on the board rather than switched on per monster. On a phone held sideways both tracks share one line. |

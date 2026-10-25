@@ -1,0 +1,94 @@
+{
+  "fight": {
+    "version": 1,
+    "monster": "Vyraxen",
+    "players": 2,
+    "startingHealth": 12,
+    "tier": 1,
+    "health": 12,
+    "damage": 3,
+    "stances": [
+      {
+        "label": "I",
+        "toughness": 2,
+        "progression": 3,
+        "damageValue": 2,
+        "exposed": {
+          "front": true,
+          "right": false,
+          "rear": true,
+          "left": false
+        },
+        "resistant": false,
+        "shield": 0,
+        "bonusDamage": 0
+      }
+    ],
+    "stancePending": false,
+    "struggle": 0,
+    "round": 1,
+    "upkeepDone": false,
+    "states": [],
+    "outcome": null,
+    "hardening": null,
+    "acceleration": 0
+  },
+  "undo": [
+    {
+      "version": 1,
+      "monster": "Vyraxen",
+      "players": 2,
+      "startingHealth": 12,
+      "tier": 1,
+      "health": 12,
+      "damage": 0,
+      "stances": [],
+      "stancePending": true,
+      "struggle": 0,
+      "round": 1,
+      "upkeepDone": false,
+      "states": [],
+      "outcome": null,
+      "hardening": null,
+      "acceleration": 0
+    },
+    {
+      "version": 1,
+      "monster": "Vyraxen",
+      "players": 2,
+      "startingHealth": 12,
+      "tier": 1,
+      "health": 12,
+      "damage": 0,
+      "stances": [
+        {
+          "label": "I",
+          "toughness": 2,
+          "progression": 3,
+          "damageValue": 2,
+          "exposed": {
+            "front": true,
+            "right": false,
+            "rear": true,
+            "left": false
+          },
+          "resistant": false,
+          "shield": 0,
+          "bonusDamage": 0
+        }
+      ],
+      "stancePending": false,
+      "struggle": 0,
+      "round": 1,
+      "upkeepDone": false,
+      "states": [],
+      "outcome": null,
+      "hardening": null,
+      "acceleration": 0
+    }
+  ],
+  "log": [
+    "Hit 3",
+    "New fight: Vyraxen, 2 players, health 12"
+  ]
+}

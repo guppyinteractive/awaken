@@ -1,7 +1,8 @@
 // Monster states (tokens on the monster board). Hints are our own words plus a
 // rulebook page reference; never paste rulebook text here.
 
-export type StateId = 'confused' | 'vulnerable' | 'stunned' | 'unstoppable' | 'acceleration';
+// Acceleration is a 0–4 track on the fight (fight.ts), not a state.
+export type StateId = 'confused' | 'vulnerable' | 'stunned' | 'unstoppable';
 
 /** When a state is cleared automatically. */
 export type StateEnds = 'end-of-round' | 'start-of-next-round' | 'manual';
@@ -52,14 +53,6 @@ export const STATE_DEFS: Record<StateId, StateDef> = {
     single: true,
     hint: 'After each behavior card triggers, the monster gains 1 Struggle. Lasts as long as the card that caused it says; remove it by hand.',
     page: 114,
-  },
-  acceleration: {
-    id: 'acceleration',
-    name: 'Acceleration',
-    ends: 'manual',
-    single: false,
-    hint: 'Each token adds 1 Struggle at monster upkeep (included automatically). Tokens stack; remove them when a card says so.',
-    page: 106,
   },
 };
 

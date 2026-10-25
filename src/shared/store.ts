@@ -31,6 +31,15 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
       const up = <F extends object | null>(f: F): F => f && { ...f, hardening: null };
       return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
     },
+    // v3 → v4: Acceleration went from a stacking state to a 0–4 count of tokens.
+    (d: { fight: { states: string[] } | null; undo?: { states: string[] }[] }) => {
+      const up = <F extends { states: string[] } | null>(f: F): F => f && {
+        ...f,
+        states: f.states.filter((s) => s !== 'acceleration'),
+        acceleration: Math.min(4, f.states.filter((s) => s === 'acceleration').length),
+      };
+      return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
+    },
   ],
   hunters: [],
   campaign: [
