@@ -77,7 +77,8 @@ export type FightEvent =
   | { kind: 'defeated' }
   | { kind: 'struggle'; amount: number; total: number }
   | { kind: 'unleash'; damageValue: number; resetTo: number }
-  | { kind: 'upkeep'; gained: number }
+  /** `refresh`: the behavior cards are refreshed first (every round but the first, p. 17). */
+  | { kind: 'upkeep'; gained: number; refresh: boolean }
   | { kind: 'state-added'; id: StateId }
   | { kind: 'bonus'; total: number }
   | { kind: 'state-removed'; id: StateId; reason: 'used' | 'removed' | 'expired' }
@@ -245,14 +246,17 @@ export function toggleExposed(fight: Fight, sector: Sector): Result {
   return { fight: f, events: [] };
 }
 
-/** Monster upkeep: +1 struggle per player and per Acceleration token, then the Unleash check. */
+/**
+ * Monster upkeep (p. 17): the table refreshes the behavior cards (not in round 1),
+ * then +1 struggle per player and per Acceleration token, then the Unleash check.
+ */
 export function monsterUpkeep(fight: Fight): Result {
   const f = clone(fight);
   const events: FightEvent[] = [];
   if (f.outcome) return { fight: f, events };
   f.upkeepDone = true;
   const gained = f.players + f.acceleration;
-  events.push({ kind: 'upkeep', gained });
+  events.push({ kind: 'upkeep', gained, refresh: f.round > 1 });
   gainStruggleInto(f, gained, events);
   return { fight: f, events };
 }
@@ -436,7 +440,7 @@ export function describe(e: FightEvent): string {
     case 'defeated': return 'Monster defeated';
     case 'struggle': return `Struggle ${e.amount > 0 ? '+' : ''}${e.amount} → ${e.total}`;
     case 'unleash': return `Unleash! Hunters suffer ${e.damageValue}. Struggle reset to ${e.resetTo}`;
-    case 'upkeep': return `Monster upkeep (+${e.gained} struggle)`;
+    case 'upkeep': return `Upkeep${e.refresh ? ': behavior refresh,' : ''} +${e.gained} struggle`;
     case 'state-added': return `${STATE_DEFS[e.id].name} added`;
     case 'discarded': return `${e.by}: ${e.amount} damage discarded`;
     case 'hardening': return `Hardening → ${e.level}${e.hardened && !e.was ? ' (Hardened)' : e.was && !e.hardened ? ' (no longer Hardened)' : ''}`;

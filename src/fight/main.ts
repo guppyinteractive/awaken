@@ -116,6 +116,16 @@ function queueAnnouncements(events: E.FightEvent[]): void {
       const damage = e.discarded ? `${e.by}: ${e.discarded} damage discarded` : `${e.carried} damage carried over`;
       announcements.push({ what: 'STANCE CHANGE', sub: `Stance ${e.label} complete · ${damage}`, alert: true });
     }
+    if (e.kind === 'upkeep') {
+      announcements.push({
+        what: 'UPKEEP',
+        sub: `${e.refresh
+          ? 'Behavior refresh: discard the behavior card with the lowest refresh value (all of them if tied) and replace it from the behavior deck.'
+          : 'Round 1: no behavior refresh.'} The monster gains ${e.gained} struggle.`,
+        alert: false,
+        hold: true,
+      });
+    }
     if (e.kind === 'unleash') announcements.push({ what: 'UNLEASH!', sub: `All hunters suffer ${e.damageValue}`, alert: true });
     if (e.kind === 'defeated') announcements.push({ what: 'MONSTER DEFEATED', sub: '', alert: false });
     if (e.kind === 'timeout') announcements.push({ what: "TIME'S UP", sub: 'Round 10 has ended', alert: true });
@@ -235,7 +245,7 @@ function boardView(f: Fight): string {
 
   const step = f.outcome
     ? f.outcome === 'defeated' ? 'Monster defeated' : "Time's up"
-    : f.stancePending ? 'Stance change' : f.upkeepDone ? "Hunters' turns" : 'Heal, then monster upkeep';
+    : f.stancePending ? 'Stance change' : f.upkeepDone ? "Hunters' turns" : 'Consume, then upkeep';
 
   const keywords = [
     stance?.shield ? `<span class="keyword">Shield ${stance.shield}</span>` : '',
@@ -307,7 +317,7 @@ function boardView(f: Fight): string {
 
       <nav class="b-actions">
         <button class="btn ${f.upkeepDone ? '' : 'primary'}" data-act="upkeep" ${f.outcome || f.stancePending ? 'disabled' : ''}>
-          ${f.upkeepDone ? 'Upkeep done' : `Monster upkeep (+${f.players + f.acceleration})`}</button>
+          ${f.upkeepDone ? 'Upkeep done' : `Upkeep (+${f.players + f.acceleration})`}</button>
         <button class="btn" data-act="end-round" ${f.outcome || f.stancePending ? 'disabled' : ''}>End round</button>
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo</button>
         <button class="btn" data-act="menu">Menu</button>

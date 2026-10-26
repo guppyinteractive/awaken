@@ -53,7 +53,7 @@ Terms follow the rulebook (`rules/`, git-ignored). Page numbers refer to the pri
 Each round has three steps. The board shows the current step:
 
 1. **Heal**: the top of the round, when hunters can heal.
-2. **Monster upkeep**: a button adds Struggle (+1 per player), checks for an Unleash, and marks upkeep as done. Until it's pressed, the button stays highlighted.
+2. **Upkeep**: a button adds Struggle (+1 per player, +1 per Acceleration token), checks for an Unleash, and marks upkeep as done. It pops up a reminder that stays until tapped: refresh the behavior cards (from round 2, p. 17), then the Struggle gained. Until it's pressed, the button stays highlighted.
 3. **End round**: clears states that end at the end of the round, advances the round marker, clears states that end at the start of the next round, and resets the upkeep flag.
 
 If round 10 ends with the monster alive, a "Time's up" screen shows the fight was lost.
@@ -197,7 +197,7 @@ There is one page, and its controls are part of the board. Whatever is on screen
 
 - **Tap the thing to change it:** tap damage to open hit entry, tap a sector to toggle it, tap Struggle for +/−, and tap a state chip for its hint and Remove.
 - **Quiet styling:** controls are low-contrast and grouped along the edges, so the numbers stay the focus from across the room.
-- **Main actions** sit in a slim bottom bar: **Monster upkeep (+N)**, **End round**, **Undo**.
+- **Main actions** sit in a slim bottom bar: **Upkeep (+N)**, **End round**, **Undo**.
 - **Hit entry:** a small popover with +1 to +6, a custom amount with **Deal**, **×2 (use Vulnerable)** when the monster is vulnerable, and −1 for corrections. It closes after a hit, so the TV shows the result.
 - **States:** a **+ Add state** button opens the state picker. A state is disabled there when the monster already has it (unless it stacks).
 - **Stance form:** a full-screen panel, which also shows on the TV. That's fine, because the whole table is waiting on the stance change anyway.
@@ -488,3 +488,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-25 | Hardening track (fight record v3; older fights have none): an optional 0–3 track, ticked at setup for Toramat and Dygorax and addable from the menu for any monster, since the rulebook may not list every monster that has one. At 3 the monster is Hardened (p. 109): after damage turns into wounds the rest is discarded (and none carries to the next stance), and Stunned, Confused and Vulnerable can't be added. States already on stay, because the rules only stop new ones. Reaching 3 pops up a held HARDENED notice; the tag by the damage opens what it does. |
 | 2026-10-25 | Acceleration moved from a stacking state to a 0–4 track under the states, next to Hardening (fight record v4: Acceleration states become the count, at most 4). Any monster's cards can add it, so it's always on the board rather than switched on per monster. On a phone held sideways both tracks share one line. |
 | 2026-10-25 | Added **Blind** (p. 106) as a monster state, though its token goes on a peril card: it's what the table needs to remember during the fight. It stacks to the 2 tokens in the box and is removed by hand, because it ends at a player's turn, which the tracker doesn't follow. States that stack can now have a maximum. |
+| 2026-10-25 | The upkeep button is now **Upkeep (+N)** (shorter, fits a phone). Tapping it pops up the behavior refresh (discard the lowest refresh value, all tied cards, and replace them; skipped in round 1, p. 17) and the Struggle gained, held until tapped, since the tracker doesn't know the behavior cards. The step before it reads "Consume, then upkeep", after the rulebook's step 1. |

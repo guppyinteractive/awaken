@@ -157,7 +157,11 @@ describe('monster states', () => {
     let f = fightWith(2, 10, stance(2, 7));
     f = changeAcceleration(f, 2).fight;
     const r = monsterUpkeep(f); // 2 players + 2 tokens
-    expect(r.events).toContainEqual({ kind: 'upkeep', gained: 4 });
+    expect(r.events).toContainEqual({ kind: 'upkeep', gained: 4, refresh: false });
+    expect(text(r.events[0])).toBe('Upkeep +4 struggle');
+    const later = monsterUpkeep(endRound(f).fight);
+    expect(later.events[0]).toEqual({ kind: 'upkeep', gained: 4, refresh: true });
+    expect(text(later.events[0])).toBe('Upkeep: behavior refresh, +4 struggle');
     expect(r.fight.struggle).toBe(4);
     expect(text(changeAcceleration(f, 1).events[0])).toBe('Acceleration → 3');
     expect(changeAcceleration(f, 9).fight.acceleration).toBe(4);
