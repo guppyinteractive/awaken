@@ -269,6 +269,13 @@ describe('Hardening track and Hardened (pp. 95, 109)', () => {
     expect(text(r.events[r.events.length - 1])).toBe('Hardened: 1 damage discarded');
   });
 
+  it('a wound from a card leaves the damage alone, even when Hardened (p. 115)', () => {
+    const f = dealDamage(hardened(fightWith(1, 10, stance(3, null))), 2).fight;
+    const r = inflictWound(f);
+    expect(r.fight.health).toBe(9);
+    expect(r.fight.damage).toBe(2);
+  });
+
   it('carries no damage into the next stance', () => {
     const r = dealDamage(hardened(fightWith(1, 10, stance(2, 9))), 5);
     expect(r.events).toContainEqual({ kind: 'stance-complete', label: 'S', carried: 0, discarded: 3, by: 'Hardened' });

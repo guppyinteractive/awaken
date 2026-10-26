@@ -72,7 +72,7 @@ Struggle is added at upkeep instead of at end of round because the order matters
   - The board shows **STANCE CHANGE** and the next-stance form opens.
   - The damage still waiting is shown on screen ("5 damage carried over"). Damage entered while the form is open is added to it.
   - When the stance is saved, the carried-over damage is checked against the **new** toughness. That can cause more wounds or another stance change. The rulebook says to inflict that wound before any "When revealed" ability.
-- **Card effects that cause a wound directly** ("the monster suffers a wound"): a **+1 wound** button lowers health by 1 without touching damage, then runs the same stance and defeat checks.
+- **Card effects that cause a wound directly** ("the monster suffers a wound"): **+ Wound** on the health box lowers health by 1 without touching damage, then runs the same stance and defeat checks (p. 115). It isn't damage, so Shield, Vulnerable and Hardened don't apply. The **−** beside it takes a wound back as a correction.
 - Rulebook example (2 players, 9 health, toughness 2×, progression 7): a 13-damage hit → 2 wounds → health 7 → Stance II with 5 damage carried over. In Stance II (toughness 3× = 6), that's not enough for another wound. **This is the first test case.**
 
 ### Struggle and Unleash (p. 18)
@@ -201,7 +201,7 @@ There is one page, and its controls are part of the board. Whatever is on screen
 - **Hit entry:** a small popover with +1 to +6, a custom amount with **Deal**, **×2 (use Vulnerable)** when the monster is vulnerable, and −1 for corrections. It closes after a hit, so the TV shows the result.
 - **States:** a **+ Add state** button opens the state picker. A state is disabled there when the monster already has it (unless it stacks).
 - **Stance form:** a full-screen panel, which also shows on the TV. That's fine, because the whole table is waiting on the stance change anyway.
-- **Less frequent actions** go in a menu: New fight, Edit stance, **+1 wound (card effect)**, manual health +/−, and the log.
+- **Less frequent actions** go in a menu: New fight, Edit stance, manual health +/−, and the log.
 - **Log:** the last ~15 actions, e.g. "Hit 13 → 2 wounds, Stance II, 5 carried over". It's kept in the menu, not on the board.
 
 Touch targets need to work from a laptop trackpad, a tablet, or a phone, upright or sideways.
@@ -489,3 +489,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-25 | Acceleration moved from a stacking state to a 0–4 track under the states, next to Hardening (fight record v4: Acceleration states become the count, at most 4). Any monster's cards can add it, so it's always on the board rather than switched on per monster. On a phone held sideways both tracks share one line. |
 | 2026-10-25 | Added **Blind** (p. 106) as a monster state, though its token goes on a peril card: it's what the table needs to remember during the fight. It stacks to the 2 tokens in the box and is removed by hand, because it ends at a player's turn, which the tracker doesn't follow. States that stack can now have a maximum. |
 | 2026-10-25 | The upkeep button is now **Upkeep (+N)** (shorter, fits a phone). Tapping it pops up the behavior refresh (discard the lowest refresh value, all tied cards, and replace them; skipped in round 1, p. 17) and the Struggle gained, held until tapped, since the tracker doesn't know the behavior cards. The step before it reads "Consume, then upkeep", after the rulebook's step 1. |
+| 2026-10-25 | **+ Wound** (a card wound) moved from the menu to the health box, beside the pips, with a **−** correction. On a phone held sideways they sit in the box's top corner so the board doesn't grow. Rulebook p. 115: a card wound lowers health and checks the stance; damage on the stance card stays, so dealing a toughness's worth of damage isn't the same (Shield, Vulnerable and Hardened would change it). |

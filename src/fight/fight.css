@@ -97,6 +97,9 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
   .b-actions .btn, .board .btn, .board .chip { min-height: 40px; padding: 4px 10px; }
   .board .chip { min-height: 32px; font-size: 13px; }
   .b-states .row { gap: 4px; }
+  /* Card wounds sit in the health box's empty top corner instead of adding a row. */
+  .b-health { position: relative; }
+  .wound-btns { position: absolute; top: 6px; right: 10px; gap: 4px; }
   /* The tracks join the states row, so the board still fits. */
   .b-states { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
   .b-states .track { flex: 0 1 auto; flex-wrap: nowrap; border: 0; padding: 0; gap: 4px; }
@@ -121,3 +124,6 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
 .track { padding-top: 8px; border-top: 1px solid var(--line); }
 .track .label { margin: 0; min-width: 7.5em; }
 button.keyword { background: var(--panel); color: inherit; font: inherit; font-weight: 700; cursor: pointer; min-height: 32px; }
+
+/* Wound from a card, and taking one back. */
+.wound-btns { flex-wrap: nowrap; }

@@ -276,7 +276,12 @@ function boardView(f: Fight): string {
       <section class="b-health box" data-act="hit" role="button" aria-label="Enter a hit">
         <div class="label">Health</div>
         <div class="row"><span class="big">${f.health}</span><button class="btn quiet small" data-act="edit-stance" aria-label="Edit next stance health">${nextStance !== null ? `Next stance at ${nextStance}` : 'Until defeated'} ✎</button></div>
-        <div class="pips">${healthPips}</div>
+        <div class="row"><div class="pips">${healthPips}</div>
+          ${f.outcome ? '' : `<span class="spacer"></span>
+          <span class="row wound-btns">
+            <button class="btn small quiet" data-act="health-up" aria-label="Take a wound back (correction)" ${f.health < f.startingHealth ? '' : 'disabled'}>−</button>
+            <button class="btn small" data-act="wound-effect" aria-label="Wound from a card: health −1, damage stays">+ Wound</button>
+          </span>`}</div>
         <div class="label spaced">Damage</div>
         <div class="row"><span class="mid">${f.damage} / ${Number.isFinite(t) ? t : '—'}</span>
           <span class="note">${stance ? `toughness ${t} (${stance.toughness} × ${f.players})` : ''}</span>${keywords}</div>
@@ -417,7 +422,6 @@ function menuView(f: Fight): string {
     <div class="menu-list">
       <button class="btn" data-act="edit-stance">Edit current stance</button>
       ${f.hardening === null && !f.outcome ? '<button class="btn" data-act="add-hardening">Add the Hardening track</button>' : ''}
-      <button class="btn" data-act="wound-effect">+1 wound (card effect)</button>
       <div class="row"><span class="note grow">Health correction</span>
         <button class="btn small" data-act="health-down">−1</button>
         <button class="btn small" data-act="health-up">+1</button></div>
