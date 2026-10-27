@@ -165,7 +165,12 @@ function nextAnnouncement(): void {
 // ---- Views -----------------------------------------------------------------
 
 function render(): void {
+  // Keep an open sheet's scroll position when it re-renders (e.g. tapping exposed sides).
+  const before = root.querySelector<HTMLElement>('.sheet');
+  const kept = before && { label: before.getAttribute('aria-label'), top: before.scrollTop };
   root.innerHTML = fight ? boardView(fight) + panelView(fight) : setupView();
+  const after = root.querySelector<HTMLElement>('.sheet');
+  if (kept && after?.getAttribute('aria-label') === kept.label) after.scrollTop = kept.top;
   if (announcements.length) {
     const a = announcements[0];
     root.insertAdjacentHTML(
