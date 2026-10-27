@@ -271,6 +271,7 @@ Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem 
 
 - Materials (6), plants (6), elements (9), and the trophy monsters (22) ship with the app, **using the names from the sheets** (`src/shared/game.ts`).
 - Names are plain text labels. No game icons or art; any icons are our own generic shapes.
+- Each material, plant, and element has its own simple icon (`src/shared/icons.ts`) in the colour the character sheet uses, since cards and tokens often show only the icon. They are drawn for the app, not traced.
 - Rules hints stay in our own words with a page reference, never pasted text.
 
 ---
@@ -492,3 +493,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-25 | **+ Wound** (a card wound) moved from the menu to the health box, beside the pips, with a **−** correction. On a phone held sideways they sit in the box's top corner so the board doesn't grow. Rulebook p. 115: a card wound lowers health and checks the stance; damage on the stance card stays, so dealing a toughness's worth of damage isn't the same (Shield, Vulnerable and Hardened would change it). |
 | 2026-10-27 | Hunter tracker: **Notes** moved from the left column to the bottom, full width under the resources. On a phone the columns stack, and Notes had landed between the skill tree and the resources, in the way of the counters used after each fight (from playtesting). |
 | 2026-10-27 | The address moves to `www.guppyinteractive.com/primal/` (repo renamed `guppyinteractive/primal`), before the installable app ships. Correction to 2026-10-12: IndexedDB, persistent storage and Web Locks belong to the origin, not the path, so saves carry over; only an installed app or service worker is tied to the path, and none has shipped. Internal names stay `awaken` (database, tab lock, backup `app` field) so saves and old backups keep working. Backup files are now named `primal-…`. |
+| 2026-10-27 | Hunter tracker: each resource counter shows an icon of our own, coloured to match the character sheet, because many game bits show only the icon. Shapes are simple and drawn for the app (a drop, a heap, a flame), not traced from the sheet. In dark mode each icon sits on a paper-coloured disc so the dark reds and greens stay visible. |

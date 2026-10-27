@@ -6,6 +6,7 @@ import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import { backUpEverything, backUpPart, backupRowHtml, currentStatus, type Message } from '../shared/backup';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
+import { resourceIcon } from '../shared/icons';
 
 const ROWS = ['A', 'B', 'C', 'D', 'E'] as const;
 
@@ -69,7 +70,7 @@ function render(): void {
           const n = h.counts[kind][i] ?? 0;
           return `
           <div class="counter">
-            <span class="name">${esc(name)}</span>
+            <span class="name">${resourceIcon(name)}${esc(name)}</span>
             <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="-1" aria-label="One less ${esc(name)}" ${n ? '' : 'disabled'}>−</button>
             <span class="n">${n}</span>
             <button class="btn small" data-act="count" data-kind="${kind}" data-i="${i}" data-d="1" aria-label="One more ${esc(name)}">+</button>
