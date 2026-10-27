@@ -176,11 +176,8 @@ a.btn { color: inherit; text-decoration: none; display: inline-flex; align-items
 
 .counter { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center; }
 .counter .name { display: flex; align-items: center; gap: 8px; padding: 6px 0; min-width: 0; overflow-wrap: anywhere; }
-/* Resource icons keep the sheet's colours; in dark mode they sit on a paper-coloured disc. */
+/* Resource icons keep the sheet's colours in both themes. */
 .res-icon { flex: none; width: 24px; height: 24px; }
-@media (prefers-color-scheme: dark) {
-  .res-icon { background: #ebe8e1; border-radius: 50%; padding: 2px; width: 28px; height: 28px; }
-}
 .counter .n { min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 /* ---- Exposure diagram ---- */
