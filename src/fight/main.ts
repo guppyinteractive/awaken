@@ -321,7 +321,7 @@ function boardView(f: Fight): string {
 
       <section class="b-states box">
         <div class="label">Monster states</div>
-        <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" ${f.outcome ? 'disabled' : ''}>+ Add state</button></div>
+        <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" aria-label="Add a state" ${f.outcome ? 'disabled' : ''}>+ <span class="long">Add </span>state</button></div>
         ${trackView(f, 'Acceleration', 'acceleration', f.acceleration, E.ACCELERATION_MAX)}
         ${f.hardening === null ? '' : trackView(f, 'Hardening', 'hardening', f.hardening, E.HARDENING_MAX)}
       </section>
