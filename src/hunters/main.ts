@@ -95,15 +95,15 @@ function render(): void {
             <p class="note">Mark each step when you've gained those cards. Step 2 opens once you have step 1.</p>
             <div class="skills">${skills}</div>
           </section>
-          <section class="box">
-            <label class="field"><span class="label">Notes</span>
-              <textarea data-field="notes" rows="4">${esc(h.notes)}</textarea></label>
-          </section>
         </div>
         <div class="col">
           ${resources}
         </div>
       </div>
+      <section class="box">
+        <label class="field"><span class="label">Notes</span>
+          <textarea data-field="notes" rows="4">${esc(h.notes)}</textarea></label>
+      </section>
       ${backupRowHtml('<button class="btn small" data-act="backup">Back up this hunter</button>', status, message)}
       ${state.hunters.length > 1 ? '<div class="row"><button class="btn alert small" data-act="remove">Remove this hunter</button></div>' : ''}
     </main>
