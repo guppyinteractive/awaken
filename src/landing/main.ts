@@ -178,6 +178,7 @@ function render(): void {
         ${previousVersions()}
       </section>
     </main>
+    <p class="also-by">Enjoy text adventures like Zork? Try <a href="https://www.guppyinteractive.com/" target="_blank" rel="noopener">IFMachine</a> for Android, also from Guppy Interactive.</p>
     ${DISCLAIMER}`;
 }
 
