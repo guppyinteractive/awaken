@@ -4,6 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, backupRowHtml, currentStatus, type Message } from '../shared/backup';
 import { RESOURCES, RESOURCE_KINDS, type ResourceKind } from '../shared/game';
 import { resourceIcon } from '../shared/icons';
@@ -159,4 +160,5 @@ root.addEventListener('input', (ev) => {
 });
 
 void protectIfInstalled();
+registerWorker();
 render();

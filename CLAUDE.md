@@ -72,6 +72,7 @@ device keeps its own state; there is no sync or accounts.
   each renders with `innerHTML` and handles clicks by `data-act` delegation.
 - `src/shared/` — wireframe styles, helpers, component names (`game.ts`), and saved data
   (`store.ts`: versioned IndexedDB records; a format change needs an upgrade step and a fixture).
+- `src/sw/` — the offline service worker; `vite.config.ts` writes `dist/sw.js` with every built file to cache.
 - `design/ux-plan.md` — the living UX plan. Record decisions in its decision log.
 
 ## Conventions & Patterns

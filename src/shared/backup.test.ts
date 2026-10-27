@@ -14,8 +14,8 @@ group('backup files', () => {
   });
 
   it('refuses files that are not backups, with a reason', () => {
-    expect(() => parseBackup('not json')).toThrow(/isn't an Awaken backup/);
-    expect(() => parseBackup('{"hunters": []}')).toThrow(/isn't an Awaken backup/);
+    expect(() => parseBackup('not json')).toThrow(/isn't a Primal Tools backup/);
+    expect(() => parseBackup('{"hunters": []}')).toThrow(/isn't a Primal Tools backup/);
     expect(() => parseBackup(JSON.stringify(makeBackup({})))).toThrow(/no saved progress/);
   });
 

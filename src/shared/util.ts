@@ -12,7 +12,7 @@ export function topbar(where: string): string {
   const warning = storageWarning();
   return `
     <header class="topbar">
-      <a href="${import.meta.env.BASE_URL}">AWAKEN</a>
+      <a href="${import.meta.env.BASE_URL}">PRIMAL TOOLS</a>
       <span class="where">${esc(where)}</span>
       <span class="spacer"></span>
       <span class="wire-tag">Wireframe</span>

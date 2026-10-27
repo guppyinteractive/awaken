@@ -89,10 +89,10 @@ export function parseBackup(text: string): Backup {
   try {
     b = JSON.parse(text);
   } catch {
-    throw new Error("This file isn't an Awaken backup.");
+    throw new Error("This file isn't a Primal Tools backup.");
   }
   if (!b || typeof b !== 'object' || b.app !== 'awaken' || typeof b.records !== 'object' || !b.records) {
-    throw new Error("This file isn't an Awaken backup.");
+    throw new Error("This file isn't a Primal Tools backup.");
   }
   if (typeof b.format !== 'number' || b.format > FORMAT) {
     throw new Error('This backup was made by a newer version of the app. Reload the page to update, then try again.');
@@ -227,7 +227,7 @@ export async function shareOrDownload(b: Backup, nav: Navigator = navigator, doc
   const file = new File([JSON.stringify(b, null, 1)], name, { type: 'application/json' });
   if (nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'Awaken backup' });
+      await nav.share({ files: [file], title: 'Primal Tools backup' });
       return true;
     } catch (e) {
       if ((e as Error).name === 'AbortError') return false;

@@ -6,6 +6,7 @@ import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
 import { HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
@@ -666,4 +667,5 @@ if (fight?.stancePending && !fight.outcome) {
 if (fight?.outcome) await checkTrophy(); // reopened on the end-of-fight screen
 keepAwake();
 void protectIfInstalled();
+registerWorker();
 render();

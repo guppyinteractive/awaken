@@ -6,6 +6,7 @@ import {
 } from '../shared/store';
 import { protect, protectIfInstalled, type Protection } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { installWay, onInstallChange, promptInstall, registerWorker } from '../shared/install';
 import {
   backUpEverything, contents, currentStatus, describe, LABELS, mergeHunter, messageHtml, parseBackup, partName, statusHtml,
   type Backup, type Message, type Status,
@@ -43,6 +44,27 @@ const TOOLS = [
   { href: 'campaign/', name: 'Campaign tracker', who: 'The keeper', what: 'Chapters, herbalist and forge, trophies, quests and achievements.' },
   { href: 'fight/', name: 'Fight tracker', who: 'The keeper, cast to the TV', what: "Monster health, stance, struggle and states during a fight." },
 ];
+
+const INSTALL_HELP = {
+  share: 'On iPhone or iPad: tap the Share button, then Add to Home Screen. Open the app from your home screen from then on.',
+  menu: "Open your browser's menu and choose Install app or Add to Home screen. If neither is there, try Chrome, Edge, or Safari.",
+};
+
+function installButton(): string {
+  return installWay() === 'installed'
+    ? '<span class="note"><strong>Installed.</strong> Open Primal Tools from your home screen.</span>'
+    : '<button class="btn primary" data-act="install">Install app</button>';
+}
+
+async function install(): Promise<void> {
+  const way = installWay();
+  if (way === 'prompt') {
+    message = (await promptInstall()) ? { text: 'Installed. Open Primal Tools from your home screen from now on.' } : null;
+  } else if (way !== 'installed') {
+    message = { text: INSTALL_HELP[way] };
+  }
+  render();
+}
 
 function protectionStatus(): string {
   switch (protection) {
@@ -145,7 +167,7 @@ function render(): void {
         </ol>
         ${protectionStatus()}
         <div class="row">
-          <button class="btn" disabled>Install app</button>
+          ${installButton()}
           <button class="btn" data-act="backup">Back up</button>
           <button class="btn" data-act="restore">Restore</button>
           ${statusHtml(status)}
@@ -246,6 +268,7 @@ root.addEventListener('click', async (ev) => {
     render();
     return;
   }
+  if (act === 'install') return install();
   if (act === 'backup') return backUp();
   if (act === 'restore') return root.querySelector<HTMLInputElement>('[data-act="restore-file"]')!.click();
   if (act === 'restore-confirm') return confirmRestore();
@@ -275,4 +298,6 @@ root.addEventListener('click', async (ev) => {
   location.href = BASE + (role === 'hunter' ? 'hunters/' : 'campaign/');
 });
 
+onInstallChange(render);
 render();
+registerWorker();

@@ -4,6 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
+import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, backupRowHtml, currentStatus, messageHtml, type Message } from '../shared/backup';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 
@@ -217,4 +218,5 @@ root.addEventListener('submit', (ev) => {
 });
 
 void protectIfInstalled();
+registerWorker();
 render();
