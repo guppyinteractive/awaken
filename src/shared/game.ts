@@ -20,6 +20,9 @@ export const MONSTERS = [
 /** Monsters with a Hardening track (rulebook p. 95). */
 export const HARDENING_MONSTERS: readonly string[] = ['Toramat', 'Dygorax'];
 
+/** Monsters with a Charge track (rulebook p. 95). */
+export const CHARGE_MONSTERS: readonly string[] = ['Jekoros'];
+
 /** Monsters whose cards put Dust tokens on the board, removed at the end of each round (rulebook p. 95). */
 export const DUST_MONSTERS: readonly string[] = ['Toramat', 'Dygorax'];
 

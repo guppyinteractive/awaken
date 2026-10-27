@@ -108,7 +108,7 @@ fieldset.plain { border: 0; padding: 0; margin: 0; }
   .board .bar { height: 10px; }
   .board .pip { width: 3.4vh; }
   .tap-hint, .b-head .note, .b-states .label { display: none; }
-  .b-stance .sectors { max-width: 28vh; }
+  .b-stance .sectors { max-width: 22vh; }
   .b-actions { padding-block: 4px calc(4px + env(safe-area-inset-bottom, 0px)); }
   .b-actions .btn, .board .btn, .board .chip { min-height: 40px; padding: 4px 10px; }
   .board .chip { min-height: 32px; font-size: 13px; }

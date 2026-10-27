@@ -85,9 +85,14 @@ describe('upgrades', () => {
     const f = (states: string[]) => ({ states, round: 1 });
     const out = upgrade('fight', { version: 3, data: { fight: f(['acceleration', 'stunned', 'acceleration']), undo: [f(Array(5).fill('acceleration'))] } });
     expect(out).toEqual({
-      fight: { states: ['stunned'], round: 1, acceleration: 2 },
-      undo: [{ states: [], round: 1, acceleration: 4 }],
+      fight: { states: ['stunned'], round: 1, acceleration: 2, charge: null },
+      undo: [{ states: [], round: 1, acceleration: 4, charge: null }],
     });
+  });
+
+  it('fight v4 → v5 gives fights no Charge track', () => {
+    const out = upgrade('fight', { version: 4, data: { fight: { round: 2 }, undo: [{ round: 1 }] } });
+    expect(out).toEqual({ fight: { round: 2, charge: null }, undo: [{ round: 1, charge: null }] });
   });
 
   it('campaign v2 → v3 turns done quests into completed and the rest into locked', () => {

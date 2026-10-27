@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addState, attackDamage, blankStance, canAddState, changeAcceleration, changeBonus, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
+  addState, attackDamage, blankStance, canAddState, changeAcceleration, changeBonus, changeCharge, changeHardening, isHardened, createFight, dealDamage, describe as text, endRound, gainStruggle,
   inflictWound, loseStruggle, monsterUpkeep, removeState, revealStance, stateCount, toughness,
   type Fight, type Stance,
 } from './fight';
@@ -237,6 +237,24 @@ describe('bonus damage tokens (p. 104)', () => {
     f = dealDamage(f, 2).fight; // wound → health 9 → stance complete
     f = revealStance(f, blankStance(f)).fight;
     expect(attackDamage(f)).toBe(3);
+  });
+});
+
+describe('Charge track (p. 95)', () => {
+  it('has no track unless asked for, runs 0–3, and changes nothing else', () => {
+    expect(createFight({ monster: 'Test', players: 1 }).charge).toBeNull();
+    const start = createFight({ monster: 'Jekoros', players: 2, charge: true });
+    expect(start.charge).toBe(0);
+    let r = changeCharge(start, 5);
+    expect(r.fight.charge).toBe(3);
+    expect(text(r.events[0])).toBe('Charge → 3');
+    expect({ ...r.fight, charge: 0 }).toEqual(start);
+    r = changeCharge(r.fight, -4);
+    expect(r.fight.charge).toBe(0);
+  });
+
+  it('starts the track from the menu for any monster', () => {
+    expect(changeCharge(createFight({ monster: 'Test', players: 1 }), 0).fight.charge).toBe(0);
   });
 });
 

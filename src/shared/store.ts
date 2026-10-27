@@ -40,6 +40,11 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
       };
       return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
     },
+    // v4 → v5: fights gained the Charge track (null = the monster has none).
+    (d: { fight: object | null; undo?: object[] }) => {
+      const up = <F extends object | null>(f: F): F => f && { ...f, charge: null };
+      return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
+    },
   ],
   hunters: [],
   campaign: [

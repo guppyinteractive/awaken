@@ -9,7 +9,7 @@ import { oneTab } from '../shared/tabs';
 import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
-import { DUST_MONSTERS, HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
+import { CHARGE_MONSTERS, DUST_MONSTERS, HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
 
 type Fight = E.Fight;
 
@@ -213,6 +213,9 @@ function setupView(): string {
         <div class="field"><span class="label">Hardening track</span>
           <label class="toggle radio"><input name="hardening" type="checkbox" ${hasHardening(monster) ? 'checked' : ''}> On the monster board</label>
           <span class="note">${HARDENING_MONSTERS.join(' and ')} (p. 95). You can also add it later from the menu.</span></div>
+        <div class="field"><span class="label">Charge track</span>
+          <label class="toggle radio"><input name="charge" type="checkbox" ${hasCharge(monster) ? 'checked' : ''}> On the monster board</label>
+          <span class="note">${CHARGE_MONSTERS.join(' and ')} (p. 95). You can also add it later from the menu.</span></div>
         <button class="btn primary" type="submit">Next: enter Stance I</button>
       </form>
     </main>
@@ -220,8 +223,9 @@ function setupView(): string {
 }
 
 const hasHardening = (monster: string) => HARDENING_MONSTERS.includes(trophyFor(monster) ?? '');
+const hasCharge = (monster: string) => CHARGE_MONSTERS.includes(trophyFor(monster) ?? '');
 
-/** A 0–max counter on the monster board (Acceleration, Hardening). */
+/** A 0–max counter on the monster board (Acceleration, Hardening, Charge). */
 function trackView(f: Fight, name: string, act: string, level: number, max: number): string {
   const pips = Array.from({ length: max }, (_, i) => `<span class="pip ${i < level ? 'on' : ''}"></span>`).join('');
   return `
@@ -327,6 +331,7 @@ function boardView(f: Fight): string {
         <div class="row">${chips}<button class="btn quiet small" data-act="pick-state" aria-label="Add a state" ${f.outcome ? 'disabled' : ''}>+ <span class="long">Add </span>state</button></div>
         ${trackView(f, 'Acceleration', 'acceleration', f.acceleration, E.ACCELERATION_MAX)}
         ${f.hardening === null ? '' : trackView(f, 'Hardening', 'hardening', f.hardening, E.HARDENING_MAX)}
+        ${f.charge === null ? '' : trackView(f, 'Charge', 'charge', f.charge, E.CHARGE_MAX)}
       </section>
 
       <nav class="b-actions">
@@ -431,6 +436,7 @@ function menuView(f: Fight): string {
     <div class="menu-list">
       <button class="btn" data-act="edit-stance">Edit current stance</button>
       ${f.hardening === null && !f.outcome ? '<button class="btn" data-act="add-hardening">Add the Hardening track</button>' : ''}
+      ${f.charge === null && !f.outcome ? '<button class="btn" data-act="add-charge">Add the Charge track</button>' : ''}
       <div class="row"><span class="note grow">Health correction</span>
         <button class="btn small" data-act="health-down">−1</button>
         <button class="btn small" data-act="health-up">+1</button></div>
@@ -598,6 +604,9 @@ root.addEventListener('click', async (ev) => {
     case 'hardening-up': apply(E.changeHardening(f, 1)); break;
     case 'hardening-down': apply(E.changeHardening(f, -1)); break;
     case 'add-hardening': panel = null; apply(E.changeHardening(f, 0)); break;
+    case 'charge-up': apply(E.changeCharge(f, 1)); break;
+    case 'charge-down': apply(E.changeCharge(f, -1)); break;
+    case 'add-charge': panel = null; apply(E.changeCharge(f, 0)); break;
     case 'hardened-info': panel = { kind: 'hardened' }; render(); break;
     case 'bonus-down': apply(E.changeBonus(f, -1)); break;
     case 'struggle-down': apply(E.loseStruggle(f, 1)); break;
@@ -628,6 +637,7 @@ root.addEventListener('submit', (ev) => {
         startingHealth: Math.max(1, Number(data.get('health')) || E.DEFAULT_HEALTH),
         tier: tier ? Number(tier) : null,
         hardening: data.get('hardening') === 'on',
+        charge: data.get('charge') === 'on',
       });
       undo = [];
       log = [`New fight: ${fight.monster}, ${fight.players} players, health ${fight.health}`];
@@ -655,12 +665,16 @@ root.addEventListener('submit', (ev) => {
   }
 });
 
-// Tick the Hardening track when a monster that has one is picked.
+// Tick the Hardening or Charge track when a monster that has one is picked.
 root.addEventListener('input', (ev) => {
   const input = ev.target as HTMLInputElement;
-  if (input.name !== 'monster' || !hasHardening(input.value)) return;
-  const box = input.form?.querySelector<HTMLInputElement>('input[name="hardening"]');
-  if (box) box.checked = true;
+  if (input.name !== 'monster') return;
+  const tick = (name: string) => {
+    const box = input.form?.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+    if (box) box.checked = true;
+  };
+  if (hasHardening(input.value)) tick('hardening');
+  if (hasCharge(input.value)) tick('charge');
 });
 
 // Reopen the stance form after a reload mid-change.

@@ -9,6 +9,9 @@ export const DEFAULT_HEALTH = 10;
 export const UNLEASH_PER_PLAYER = 3;
 /** The Hardening track runs 0–3; at 3 the monster is Hardened (pp. 95, 109). */
 export const HARDENING_MAX = 3;
+
+/** Jekoros' Charge track runs 0–3 (p. 95); its cards read the level. */
+export const CHARGE_MAX = 3;
 /** Acceleration tokens (p. 106): the game has 4. Each adds 1 Struggle at monster upkeep. */
 export const ACCELERATION_MAX = 4;
 /** States that can't be added while the monster is Hardened (p. 109). */
@@ -60,6 +63,8 @@ export interface Fight {
   acceleration: number;
   /** Hardening track level, 0–3 (p. 95), or null when the monster has no track. */
   hardening: number | null;
+  /** Charge track level, 0–3 (p. 95), or null when the monster has no track. */
+  charge: number | null;
   outcome: Outcome | null;
 }
 
@@ -73,6 +78,7 @@ export type FightEvent =
   | { kind: 'discarded'; amount: number; by: Discarder }
   | { kind: 'hardening'; level: number; hardened: boolean; was: boolean }
   | { kind: 'acceleration'; level: number }
+  | { kind: 'charge'; level: number }
   | { kind: 'stance-revealed'; label: string }
   | { kind: 'defeated' }
   | { kind: 'struggle'; amount: number; total: number }
@@ -100,6 +106,8 @@ export interface NewFight {
   tier?: number | null;
   /** Start with the Hardening track at 0. */
   hardening?: boolean;
+  /** Start with the Charge track at 0. */
+  charge?: boolean;
 }
 
 export function createFight(opts: NewFight): Fight {
@@ -120,6 +128,7 @@ export function createFight(opts: NewFight): Fight {
     states: [],
     acceleration: 0,
     hardening: opts.hardening ? 0 : null,
+    charge: opts.charge ? 0 : null,
     outcome: null,
   };
 }
@@ -331,6 +340,14 @@ export function changeHardening(fight: Fight, delta: number): Result {
   return { fight: f, events: [{ kind: 'hardening', level: f.hardening, hardened: isHardened(f), was }] };
 }
 
+/** Move the charge marker. Starts the track if the fight didn't have one. */
+export function changeCharge(fight: Fight, delta: number): Result {
+  const f = clone(fight);
+  if (f.outcome) return { fight: f, events: [] };
+  f.charge = clamp((f.charge ?? 0) + delta, 0, CHARGE_MAX);
+  return { fight: f, events: [{ kind: 'charge', level: f.charge }] };
+}
+
 /** Add or remove Acceleration tokens, 0–4. */
 export function changeAcceleration(fight: Fight, delta: number): Result {
   const f = clone(fight);
@@ -445,6 +462,7 @@ export function describe(e: FightEvent): string {
     case 'discarded': return `${e.by}: ${e.amount} damage discarded`;
     case 'hardening': return `Hardening → ${e.level}${e.hardened && !e.was ? ' (Hardened)' : e.was && !e.hardened ? ' (no longer Hardened)' : ''}`;
     case 'acceleration': return `Acceleration → ${e.level}`;
+    case 'charge': return `Charge → ${e.level}`;
     case 'bonus': return `Bonus damage → +${e.total}`;
     case 'state-removed': return `${STATE_DEFS[e.id].name} ${e.reason}`;
     case 'round': return `Round ${e.round}`;
