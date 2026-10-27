@@ -9,7 +9,7 @@ import { oneTab } from '../shared/tabs';
 import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, currentStatus, messageHtml, statusHtml, type Message } from '../shared/backup';
 import { sectorsSvg } from '../shared/sectors';
-import { HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
+import { DUST_MONSTERS, HARDENING_MONSTERS, MONSTERS, trophyFor } from '../shared/game';
 
 type Fight = E.Fight;
 
@@ -126,6 +126,9 @@ function queueAnnouncements(events: E.FightEvent[]): void {
         alert: false,
         hold: true,
       });
+    }
+    if (e.kind === 'round' && fight && DUST_MONSTERS.includes(trophyFor(fight.monster) ?? '')) {
+      announcements.push({ what: 'REMOVE DUST', sub: 'End of the round: take all Dust tokens off the board (p. 95).', alert: false, hold: true });
     }
     if (e.kind === 'unleash') announcements.push({ what: 'UNLEASH!', sub: `All hunters suffer ${e.damageValue}`, alert: true });
     if (e.kind === 'defeated') announcements.push({ what: 'MONSTER DEFEATED', sub: '', alert: false });

@@ -20,6 +20,9 @@ export const MONSTERS = [
 /** Monsters with a Hardening track (rulebook p. 95). */
 export const HARDENING_MONSTERS: readonly string[] = ['Toramat', 'Dygorax'];
 
+/** Monsters whose cards put Dust tokens on the board, removed at the end of each round (rulebook p. 95). */
+export const DUST_MONSTERS: readonly string[] = ['Toramat', 'Dygorax'];
+
 export const RESOURCES = {
   materials: { title: 'Materials', names: MATERIALS },
   plants: { title: 'Plants', names: PLANTS },
