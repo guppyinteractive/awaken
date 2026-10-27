@@ -60,7 +60,7 @@ npm run build    # type-check and build to dist/
 ```
 
 Pushing `main` deploys: `.github/workflows/deploy.yml` tests, builds, and
-publishes `dist/` to GitHub Pages at www.guppyinteractive.com/awaken/.
+publishes `dist/` to GitHub Pages at www.guppyinteractive.com/primal/.
 
 ## Architecture Overview
 

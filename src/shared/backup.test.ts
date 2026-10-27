@@ -38,16 +38,16 @@ group('backing up one thing', () => {
 
   it('round-trips a hunter, the campaign and a fight, and names the file after it', () => {
     for (const [only, data, name, what] of [
-      ['hunter', sam, 'awaken-hunter-sam-2026-10-12.json', 'the hunter Sam'],
-      ['campaign', campaignV1, 'awaken-campaign-2026-10-12.json', 'the campaign'],
-      ['fight', fight, 'awaken-fight-vyraxen-2026-10-12.json', 'the fight against Vyraxen'],
+      ['hunter', sam, 'primal-hunter-sam-2026-10-12.json', 'the hunter Sam'],
+      ['campaign', campaignV1, 'primal-campaign-2026-10-12.json', 'the campaign'],
+      ['fight', fight, 'primal-fight-vyraxen-2026-10-12.json', 'the fight against Vyraxen'],
     ] as const) {
       const b = makePart(only, data, now);
       expect(parseBackup(JSON.stringify(b))).toEqual(b);
       expect(fileName(b)).toBe(name);
       expect(contents(b)).toBe(what);
     }
-    expect(fileName(makeBackup({ role: rec('keeper') }, now))).toBe('awaken-backup-2026-10-12.json');
+    expect(fileName(makeBackup({ role: rec('keeper') }, now))).toBe('primal-backup-2026-10-12.json');
   });
 
   it('still reads format 1 backups of everything', () => {

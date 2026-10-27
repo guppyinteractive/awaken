@@ -1,6 +1,6 @@
 # Awaken
 
-Unofficial fan-made companion tools for the board game *Primal: The Awakening*, served at **www.guppyinteractive.com/awaken/**.
+Unofficial fan-made companion tools for the board game *Primal: The Awakening*, served at **www.guppyinteractive.com/primal/**.
 
 Not affiliated with or endorsed by the game's publisher. Component names from the game's sheets are used as plain labels; the repo contains no game art, icons, logos, or rules text.
 

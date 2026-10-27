@@ -55,8 +55,8 @@ export function fileName(b: Backup): string {
   const d = new Date(b.exportedAt);
   const pad = (n: number) => String(n).padStart(2, '0');
   const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; // local date
-  if (!b.only) return `awaken-backup-${date}.json`;
-  return ['awaken', b.only, slug(partName(b) ?? ''), date].filter(Boolean).join('-') + '.json';
+  if (!b.only) return `primal-backup-${date}.json`;
+  return ['primal', b.only, slug(partName(b) ?? ''), date].filter(Boolean).join('-') + '.json';
 }
 
 /** The hunter's player name or the fight's monster, if the file has one. */

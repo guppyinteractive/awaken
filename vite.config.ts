@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 const page = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-  // Served from www.guppyinteractive.com/awaken/
-  base: '/awaken/',
+  // Served from www.guppyinteractive.com/primal/
+  base: '/primal/',
   build: {
     rollupOptions: {
       input: {

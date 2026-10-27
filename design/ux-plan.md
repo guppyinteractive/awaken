@@ -1,12 +1,12 @@
 # Primal Fight Tracker — UX Plan
 
-Part of the Primal tools at `www.guppyinteractive.com/awaken/`.
+Part of the Primal tools at `www.guppyinteractive.com/primal/`.
 
 Living document. Last updated: 2026-10-12.
 
 A landscape display for **Primal: The Awakening** that tracks the monster during a fight, shown on a TV in the game room. Players keep handling cards and hunters on the table. The app only tracks the monster side of the fight.
 
-Status: **wireframe**. Clickable grayscale layouts of every page are live at `www.guppyinteractive.com/awaken/`. The fight rules engine is real and tested; the visual design is not done yet.
+Status: **wireframe**. Clickable grayscale layouts of every page are live at `www.guppyinteractive.com/primal/`. The fight rules engine is real and tested; the visual design is not done yet.
 
 ---
 
@@ -277,7 +277,7 @@ Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem 
 
 ## Product family
 
-`www.guppyinteractive.com/awaken/` is a small set of Primal companion tools, with the fight tracker first.
+`www.guppyinteractive.com/primal/` is a small set of Primal companion tools, with the fight tracker first.
 
 | Tool | Path (draft) | Status |
 |---|---|---|
@@ -337,7 +337,7 @@ Keep the fight's data self-contained, with optional links (campaign id, hunter i
 
 ### Hosting
 
-- Served at **`www.guppyinteractive.com/awaken/`**. That page is a **catalog landing page** for a family of Primal tools (see Product family below). Each tool has its own path: `/awaken/fight/`, `/awaken/hunters/`, `/awaken/campaign/`.
+- Served at **`www.guppyinteractive.com/primal/`**. That page is a **catalog landing page** for a family of Primal tools (see Product family below). Each tool has its own path: `/primal/fight/`, `/primal/hunters/`, `/primal/campaign/`.
 - Hosted on **GitHub Pages** under the **guppyinteractive** org. A repo named `primal` in the org is served at `/primal` automatically once the org's Pages site uses the `guppyinteractive.com` custom domain.
 - No backend, no user accounts, no cost. Every group opens the same URL, and no group can see another's data.
 
@@ -409,7 +409,7 @@ Everything is saved only in the browser on each device, so the app itself has to
 - **Automatic copies on the device:** keep the last few versions of each campaign and hunter (e.g. one per session), so a bad update or a mistake can be rolled back. These copies don't survive the browser clearing its data; only exports do.
 
 **Our discipline**
-- **The address is permanent:** `www.guppyinteractive.com/awaken/` from the first public release. Never ship on a temporary address (8).
+- **The address is permanent:** `www.guppyinteractive.com/primal/` from the first public release. Never ship on a temporary address (8).
 - **Versioned data:** every saved record carries a version number. Each app update upgrades old data step by step, with tests that use saved examples of every past version (9).
 - **Before upgrading, save a copy:** keep a copy of the data from before the upgrade until the new version has loaded it successfully.
 - **Backups always import:** an export from any past version still imports into the current one.
@@ -491,3 +491,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-25 | The upkeep button is now **Upkeep (+N)** (shorter, fits a phone). Tapping it pops up the behavior refresh (discard the lowest refresh value, all tied cards, and replace them; skipped in round 1, p. 17) and the Struggle gained, held until tapped, since the tracker doesn't know the behavior cards. The step before it reads "Consume, then upkeep", after the rulebook's step 1. |
 | 2026-10-25 | **+ Wound** (a card wound) moved from the menu to the health box, beside the pips, with a **−** correction. On a phone held sideways they sit in the box's top corner so the board doesn't grow. Rulebook p. 115: a card wound lowers health and checks the stance; damage on the stance card stays, so dealing a toughness's worth of damage isn't the same (Shield, Vulnerable and Hardened would change it). |
 | 2026-10-27 | Hunter tracker: **Notes** moved from the left column to the bottom, full width under the resources. On a phone the columns stack, and Notes had landed between the skill tree and the resources, in the way of the counters used after each fight (from playtesting). |
+| 2026-10-27 | The address moves to `www.guppyinteractive.com/primal/` (repo renamed `guppyinteractive/primal`), before the installable app ships. Correction to 2026-10-12: IndexedDB, persistent storage and Web Locks belong to the origin, not the path, so saves carry over; only an installed app or service worker is tied to the path, and none has shipped. Internal names stay `awaken` (database, tab lock, backup `app` field) so saves and old backups keep working. Backup files are now named `primal-…`. |
