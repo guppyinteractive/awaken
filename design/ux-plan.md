@@ -6,7 +6,7 @@ Living document. Last updated: 2026-10-12.
 
 A landscape display for **Primal: The Awakening** that tracks the monster during a fight, shown on a TV in the game room. Players keep handling cards and hunters on the table. The app only tracks the monster side of the fight.
 
-Status: **wireframe**. Clickable grayscale layouts of every page are live at `www.guppyinteractive.com/primal/`. The fight rules engine is real and tested; the visual design is not done yet.
+Status: **in use**. Every page is live at `www.guppyinteractive.com/primal/` and installs as one app. The fight rules engine is tested; the visual design is still plain grayscale.
 
 ---
 
@@ -512,3 +512,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-28 | The new-stance form picks the stance after the current one (I → II → III, staying at III), following whatever number the table picked last; the dropdown overrides it. What's typed in the stance form now survives a pop-up closing over it. |
 | 2026-10-28 | Completed quests show a big centred ✓ instead of the sheet's ✕, with the quest number small in the top corner. |
 | 2026-10-28 | The upkeep button reads **Monster upkeep (+N)**, and **Monster upkeep** once done (no longer highlighted), instead of "Upkeep" / "Upkeep done". |
+| 2026-10-28 | Removed the **Wireframe** tag from the top bar: the app is in use at the table. The grayscale styles stay until the visual design (awaken-7l8.1). |

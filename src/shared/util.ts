@@ -14,8 +14,6 @@ export function topbar(where: string): string {
     <header class="topbar">
       <a href="${import.meta.env.BASE_URL}">PRIMAL TOOLS</a>
       <span class="where">${esc(where)}</span>
-      <span class="spacer"></span>
-      <span class="wire-tag">Wireframe</span>
     </header>
     ${warning ? `<p class="storage-warning" role="alert">${esc(warning)}</p>` : ''}`;
 }
