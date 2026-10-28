@@ -492,26 +492,28 @@ function stateView(f: Fight, id: StateId): string {
 }
 
 function stanceView(f: Fight, mode: 'reveal' | 'edit', d: E.Stance): string {
-  const title = mode === 'reveal' ? `Enter Stance ${d.label}` : `Edit Stance ${d.label}`;
+  const title = mode === 'reveal' ? 'New stance' : 'Edit stance';
   const badProgression = d.progression !== null && d.progression >= f.health;
   return sheet(title, `
     <form class="stance-form" data-form="stance">
       ${mode === 'reveal' && f.damage ? `<p class="alert-text"><strong>${f.damage} damage carried over</strong> will be applied when you save.</p>` : ''}
       <div class="two">
-        <label class="field"><span class="label">Label</span><input name="label" value="${esc(d.label)}"></label>
+        <label class="field"><span class="label">Stance</span>
+          <select name="label">${[...new Set(['I', 'II', 'III', d.label])].map((l) =>
+            `<option ${l === d.label ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
         <label class="field"><span class="label">Toughness (per player)</span>
           <input name="toughness" type="number" inputmode="numeric" min="1" value="${d.toughness}">
           <span class="note">× ${f.players} players = ${d.toughness * f.players}</span></label>
         <label class="field"><span class="label">Next stance at health</span>
           <input name="progression" type="number" inputmode="numeric" min="0" value="${d.progression ?? ''}" placeholder="Blank = until defeated">
-          <span class="note ${badProgression ? 'alert-text' : ''}">Health now ${f.health}. ${badProgression ? 'Should be lower than current health.' : 'The stance card\'s progression value.'}</span></label>
+          <span class="note ${badProgression ? 'alert-text' : ''}">Health now ${f.health}. ${badProgression ? 'Should be lower than current health.' : ''}</span></label>
         <label class="field"><span class="label">${esc(f.monster)} attack damage</span>
           <input name="damageValue" type="number" inputmode="numeric" min="0" value="${d.damageValue}"></label>
         <label class="field"><span class="label">Shield</span>
           <input name="shield" type="number" inputmode="numeric" min="0" value="${d.shield || ''}" placeholder="None">
-          <span class="note">Shield X on the card: each hit is reduced by X (p. 112).</span></label>
-        <div class="field"><span class="label">Resistant</span>
-          <label class="toggle radio"><input name="resistant" type="checkbox" ${d.resistant ? 'checked' : ''}> On the card</label>
+          <span class="note">Each hit is reduced by this much (p. 112).</span></label>
+        <div class="field">
+          <label class="toggle radio"><input name="resistant" type="checkbox" ${d.resistant ? 'checked' : ''}> <strong>Resistant</strong></label>
           <span class="note">No damage carries over when this stance completes (p. 111).</span></div>
       </div>
       <div class="field"><span class="label">Exposed sides (tap to toggle, front is at the bottom)</span>
