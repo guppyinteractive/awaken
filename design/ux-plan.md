@@ -396,7 +396,7 @@ Everything is saved only in the browser on each device, so the app itself has to
 
 **Prevention**
 - **Install early:** the landing page pushes "Add to Home Screen" *before* any data exists. On iOS that avoids both the 7-day deletion (5) and the tab-vs-installed-app split (7).
-- **Permanent storage:** the app asks the browser to keep its data permanently (`navigator.storage.persist()`) and shows whether the browser agreed.
+- **Permanent storage:** the installed app quietly asks the browser to keep its data permanently (`navigator.storage.persist()`). There is no button for it in a browser tab; installing is the way to get it.
 - **Risky places:** detect private mode and in-app browsers (Discord, Messenger, etc.) and show a banner: "Progress won't be saved here. Open in your browser or install the app."
 - **One active tab:** a second open tab shows "Open in another tab" and a **Use here** button, instead of both saving.
 
@@ -502,3 +502,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-27 | Monster states checked against the rulebook (components, glossary, pp. 95–96, FAQ): all are covered except the Charge track (awaken-bdl.5). Stunning an already-stunned monster gets nothing extra (dropped). For Toramat and Dygorax, **End round** pops up a held **REMOVE DUST** reminder (p. 95), since Dust sits on the board and the app doesn't track it. |
 | 2026-10-27 | Charge track (fight record v5; older fights have none): an optional 0–3 track like Hardening, ticked at setup for Jekoros and addable from the menu for any monster. It has no effects of its own; Jekoros' cards read the level (p. 95). On a phone held sideways the exposed-sides diagram is capped a little smaller (22vh) so a board with three tracks still fits. |
 | 2026-10-27 | Landing page only: one muted line above the disclaimer, "Enjoy text adventures like Zork? Try IFMachine for Android, also from Guppy Interactive.", linking to www.guppyinteractive.com (its page, not the Play Store, so iPhone users learn what it is). Kept off the tool pages, since the fight board is on the TV and the trackers are working screens. |
+| 2026-10-28 | Dropped the **Protect my data** button and the storage status line from the landing page: the browser's answer was opaque (Chrome quietly says no in a tab, Firefox prompts) and players couldn't tell what it did. Installing the app is the one thing to ask for; the installed app still requests permanent storage silently on every page until granted. |

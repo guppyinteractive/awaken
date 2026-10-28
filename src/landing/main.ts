@@ -4,7 +4,7 @@ import { DISCLAIMER, esc, topbar } from '../shared/util';
 import {
   exportAll, load, restore, save, snapshots, UPGRADES, type RecordName, type Stored,
 } from '../shared/store';
-import { protect, protectIfInstalled, type Protection } from '../shared/persist';
+import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import { installWay, onInstallChange, promptInstall, registerWorker } from '../shared/install';
 import {
@@ -18,9 +18,7 @@ const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
 let role = await load<Role | null>('role', null);
-let protection: Protection = await protectIfInstalled();
-/** The player tapped Protect and the browser said no. */
-let refused = false;
+void protectIfInstalled(); // an installed app gets permanent storage without asking the player
 let status: Status = await currentStatus();
 type Records = Partial<Record<RecordName, Stored>>;
 
@@ -64,22 +62,6 @@ async function install(): Promise<void> {
     message = { text: INSTALL_HELP[way] };
   }
   render();
-}
-
-function protectionStatus(): string {
-  switch (protection) {
-    case 'protected':
-      return `<p class="note"><strong>Storage: protected.</strong> This browser won't clear your progress to free up space.</p>`;
-    case 'unsupported':
-      return `<p class="note"><strong>Storage: not protected.</strong> This browser can't keep data permanently, so back up often.</p>`;
-    case 'unprotected':
-      return `<div class="row">
-          <button class="btn" data-act="protect">Protect my data</button>
-          <span class="note"><strong>Storage: not protected.</strong> ${refused
-            ? 'The browser said no. Installing the app usually fixes this.'
-            : 'The browser may clear your progress when the device is low on space.'}</span>
-        </div>`;
-  }
 }
 
 const NAMES = Object.keys(UPGRADES) as RecordName[];
@@ -165,7 +147,6 @@ function render(): void {
           <li><strong>Back up after each session</strong> and send the file somewhere safe.</li>
           <li>Clearing browser data or deleting the app <strong>erases your progress</strong> unless you have a backup.</li>
         </ol>
-        ${protectionStatus()}
         <div class="row">
           ${installButton()}
           <button class="btn" data-act="backup">Back up</button>
@@ -263,12 +244,6 @@ root.addEventListener('change', (ev) => {
 
 root.addEventListener('click', async (ev) => {
   const act = (ev.target as Element).closest<HTMLElement>('[data-act]')?.dataset.act;
-  if (act === 'protect') {
-    protection = await protect();
-    refused = protection === 'unprotected';
-    render();
-    return;
-  }
   if (act === 'install') return install();
   if (act === 'backup') return backUp();
   if (act === 'restore') return root.querySelector<HTMLInputElement>('[data-act="restore-file"]')!.click();
