@@ -110,7 +110,7 @@ function render(): void {
   }).join('');
 
   const quests = c.quests.map((q, i) =>
-    `<button class="toggle quest ${q}" data-act="quest" data-i="${i}" aria-label="Quest ${i + 1}, ${q}">${i + 1}<span class="mark" aria-hidden="true">${QUEST_MARK[q]}</span></button>`).join('');
+    `<button class="toggle quest ${q}" data-act="quest" data-i="${i}" aria-label="Quest ${i + 1}, ${q}"><span class="n">${i + 1}</span><span class="mark" aria-hidden="true">${QUEST_MARK[q]}</span></button>`).join('');
   const count = (q: Quest) => c.quests.filter((x) => x === q).length;
 
   const achievements = c.achievements.map((a, i) => `

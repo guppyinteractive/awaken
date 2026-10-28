@@ -12,9 +12,11 @@
 .trophy { display: flex; gap: 8px; align-items: center; }
 .quests { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; margin-top: 8px; }
 .quest { position: relative; padding: 4px; font-variant-numeric: tabular-nums; color: var(--muted); }
-.quest .mark { position: absolute; top: 1px; right: 4px; font-size: 11px; line-height: 1; }
 .quest.unlocked { color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; font-weight: 700; }
 .quest.completed { color: var(--paper); background: var(--fill); border-color: var(--fill); }
+/* A completed quest: a big check in the middle, its number small in the corner. */
+.quest.completed .mark { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; font-weight: 700; line-height: 1; }
+.quest.completed .n { position: absolute; top: 2px; left: 4px; font-size: 10px; line-height: 1; }
 .grow { flex: 1; min-width: 0; }
 .campaign input { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 10px; min-height: 44px; }
 ul.plain { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
