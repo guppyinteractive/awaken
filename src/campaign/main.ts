@@ -7,6 +7,7 @@ import { oneTab } from '../shared/tabs';
 import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, backupRowHtml, currentStatus, messageHtml, type Message } from '../shared/backup';
 import { ELEMENTS, MONSTERS } from '../shared/game';
+import { skullIcon } from '../shared/icons';
 
 const CHAPTERS = 11;
 const QUESTS = 49;
@@ -90,8 +91,8 @@ function render(): void {
     const n = i + 1;
     const startsTier = TIER_STARTS.indexOf(n);
     return `
-      <button class="toggle chapter ${n === chapter ? 'current' : ''}" aria-pressed="${done}" data-act="chapter" data-i="${i}">
-        ${startsTier >= 0 ? `<span class="tier-mark">T${startsTier + 1}</span>` : ''}${n}
+      <button class="toggle chapter ${n === chapter ? 'current' : ''}" aria-pressed="${done}" data-act="chapter" data-i="${i}" aria-label="Chapter ${n}">
+        ${startsTier >= 0 ? `<span class="tier-mark">T${startsTier + 1}</span>` : ''}${done ? skullIcon() : n}
       </button>`;
   }).join('');
 
@@ -102,7 +103,7 @@ function render(): void {
     const won = c.trophies.includes(name);
     return `
     <div class="trophy">
-      <button class="toggle" aria-pressed="${won}" data-act="trophy" data-i="${i}" aria-label="${esc(name)} defeated">${won ? '✓' : ''}</button>
+      <button class="toggle" aria-pressed="${won}" data-act="trophy" data-i="${i}" aria-label="${esc(name)} defeated">${won ? skullIcon() : ''}</button>
       <span class="grow">${esc(name)}</span>
       <a class="btn small" href="${BASE}fight/?monster=${encodeURIComponent(name)}&tier=${tier}">Fight</a>
     </div>`;
@@ -150,12 +151,12 @@ function render(): void {
         <div class="col">
           <section class="box">
             <div class="label">Trophies · ${c.trophies.length} / ${MONSTERS.length}</div>
-            <p class="note">Tick a monster when it's defeated. Fight starts a fight with it.</p>
+            <p class="note">Mark each monster you defeat.</p>
             <div class="trophies">${trophies}</div>
           </section>
           <section class="box">
             <div class="label">Quests · ${count('unlocked')} unlocked · ${count('completed')} completed</div>
-            <p class="note">Tap to cycle: locked, unlocked (circled), completed (✕). Mark expired quests completed, like the sheet.</p>
+            <p class="note">Tap to cycle: locked, unlocked (circled), completed (✕). Mark expired quests completed.</p>
             <div class="quests">${quests}</div>
           </section>
         </div>

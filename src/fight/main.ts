@@ -21,6 +21,7 @@ type Panel =
   | { kind: 'log' }
   | { kind: 'state'; id: StateId }
   | { kind: 'add-state' }
+  | { kind: 'resume' }
   | { kind: 'stance'; mode: 'reveal' | 'edit'; draft: E.Stance };
 
 interface Saved {
@@ -187,6 +188,11 @@ function render(): void {
   }
 }
 
+/** Drop the campaign link's monster and tier from the address once they're used, so a reload doesn't reuse them. */
+function forgetLink(): void {
+  history.replaceState(null, '', location.pathname);
+}
+
 function setupView(): string {
   const params = new URLSearchParams(location.search);
   const monster = params.get('monster') ?? '';
@@ -205,7 +211,7 @@ function setupView(): string {
           </div></fieldset>
         <label class="field"><span class="label">Starting health</span>
           <input name="health" type="number" inputmode="numeric" min="1" value="${E.DEFAULT_HEALTH}"></label>
-        <label class="field"><span class="label">Difficulty tier (reminder only)</span>
+        <label class="field"><span class="label">Difficulty tier</span>
           <select name="tier">
             <option value="">Not set</option>
             ${[1, 2, 3].map((t) => `<option value="${t}" ${String(t) === tier ? 'selected' : ''}>Tier ${t}</option>`).join('')}
@@ -399,6 +405,12 @@ function panelView(f: Fight): string {
     case 'state': return stateView(f, panel.id);
     case 'add-state': return addStateView(f);
     case 'stance': return stanceView(f, panel.mode, panel.draft);
+    case 'resume': return sheet('Fight in progress', `
+      <p>${esc(f.monster)}, round ${f.round}${f.tier ? `, tier ${f.tier}` : ''}.</p>
+      <div class="row">
+        <button class="btn primary" data-act="keep-fight">Keep this fight</button>
+        <button class="btn" data-act="new-fight">New fight</button>
+      </div>`, false);
   }
 }
 
@@ -558,6 +570,12 @@ root.addEventListener('click', async (ev) => {
   }
   if (!fight) return;
   const f = fight;
+  if (act === 'keep-fight') {
+    forgetLink();
+    panel = f.stancePending ? { kind: 'stance', mode: 'reveal', draft: E.blankStance(f) } : null;
+    render();
+    return;
+  }
   const id = target.dataset.id as StateId | undefined;
 
   switch (act) {
@@ -639,6 +657,7 @@ root.addEventListener('submit', (ev) => {
         hardening: data.get('hardening') === 'on',
         charge: data.get('charge') === 'on',
       });
+      forgetLink();
       undo = [];
       log = [`New fight: ${fight.monster}, ${fight.players} players, health ${fight.health}`];
       panel = { kind: 'stance', mode: 'reveal', draft: E.blankStance(fight) };
@@ -677,8 +696,20 @@ root.addEventListener('input', (ev) => {
   if (hasCharge(input.value)) tick('charge');
 });
 
+// A campaign link (fight/?monster=…&tier=…) is for a new fight: a finished one
+// makes way for it, and one still going asks first.
+if (fight && new URLSearchParams(location.search).has('tier')) {
+  if (fight.outcome) {
+    fight = null;
+    undo = [];
+    log = [];
+    persist();
+  } else {
+    panel = { kind: 'resume' };
+  }
+}
 // Reopen the stance form after a reload mid-change.
-if (fight?.stancePending && !fight.outcome) {
+if (fight?.stancePending && !fight.outcome && !panel) {
   panel = { kind: 'stance', mode: 'reveal', draft: E.blankStance(fight) };
 }
 if (fight?.outcome) await checkTrophy(); // reopened on the end-of-fight screen

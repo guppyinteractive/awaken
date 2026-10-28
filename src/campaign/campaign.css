@@ -3,6 +3,8 @@
 .status { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
 .chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; margin-top: 8px; }
 .chapter { position: relative; }
+/* Skull and crossbones on a completed chapter or a collected trophy. */
+.toggle .skull { display: block; width: 24px; height: 24px; margin: auto; }
 .chapter.current { box-shadow: 0 0 0 2px var(--ink); }
 .tier-mark { position: absolute; top: -8px; left: -4px; font-size: 10px; background: var(--paper); border: 1px solid var(--muted); border-radius: 3px; padding: 0 3px; color: var(--muted); }
 .upgrades { display: grid; gap: 12px; }

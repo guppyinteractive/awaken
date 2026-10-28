@@ -126,7 +126,7 @@ function render(): void {
             <span class="note">Opens the hunter tracker</span></button>
           <button class="role ${role === 'keeper' ? 'chosen' : ''}" data-role="keeper">
             <span class="mid">Managing the Campaign</span>
-            <span class="note">Opens the campaign tracker, with fights from there</span></button>
+            <span class="note">Opens the campaign tracker</span></button>
         </div>
       </section>
 

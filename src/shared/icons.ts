@@ -95,3 +95,8 @@ export function resourceIcon(name: string): string {
   if (!icon) return '';
   return `<svg class="res-icon" viewBox="0 0 24 24" fill="currentColor" style="color:${icon.color}" aria-hidden="true">${icon.svg}</svg>`;
 }
+
+/** Our own skull and crossbones, for a completed chapter or a collected trophy. 24x24, in currentColor. */
+export function skullIcon(): string {
+  return `<svg class="skull" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4.6 14.2L19.4 21.4M19.4 14.2L4.6 21.4"/></g><path d="M3.2 14.9a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM4.2 13a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM18 14.9a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM17 13a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM3.2 20.7a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM4.2 22.6a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM18 20.7a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0ZM17 22.6a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0Z"/><path fill-rule="evenodd" d="M12 1.6C15.9 1.6 18.6 4.3 18.6 8.1C18.6 10.6 17.4 12.3 15.8 13.2L15.8 15.6C15.8 16.5 15.1 17.2 14.2 17.2L9.8 17.2C8.9 17.2 8.2 16.5 8.2 15.6L8.2 13.2C6.6 12.3 5.4 10.6 5.4 8.1C5.4 4.3 8.1 1.6 12 1.6ZM7.4 8.9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0ZM12.6 8.9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0ZM12 11.4L13.1 13.4L10.9 13.4ZM10.4 14.6L11 14.6L11 16.6L10.4 16.6ZM13 14.6L13.6 14.6L13.6 16.6L13 16.6Z"/></svg>`;
+}
