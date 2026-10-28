@@ -122,10 +122,10 @@ function render(): void {
         <h1 class="mid">What are you doing today?</h1>
         <div class="roles">
           <button class="role ${role === 'hunter' ? 'chosen' : ''}" data-role="hunter">
-            <span class="mid">Track my hunter</span>
+            <span class="mid">Playing a Hunter</span>
             <span class="note">Opens the hunter tracker</span></button>
           <button class="role ${role === 'keeper' ? 'chosen' : ''}" data-role="keeper">
-            <span class="mid">Run the campaign and fights</span>
+            <span class="mid">Managing the Campaign</span>
             <span class="note">Opens the campaign tracker, with fights from there</span></button>
         </div>
       </section>

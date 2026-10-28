@@ -176,7 +176,7 @@ export function describe(name: RecordName, stored: Stored): string {
         if (!d.fight) return 'No fight in progress';
         return d.fight.outcome ? `Finished fight against ${d.fight.monster}` : `Fight against ${d.fight.monster}, round ${d.fight.round}`;
       case 'role':
-        return d === 'keeper' ? 'Run the campaign and fights' : d === 'hunter' ? 'Track my hunter' : 'Not chosen';
+        return d === 'keeper' ? 'Managing the Campaign' : d === 'hunter' ? 'Playing a Hunter' : 'Not chosen';
     }
   } catch {
     return 'Saved progress';

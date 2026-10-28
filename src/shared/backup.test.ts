@@ -92,7 +92,7 @@ group('restore preview', () => {
     expect(describe('campaign', rec(campaignV1))).toBe('2 chapters done, 2 trophies');
     expect(describe('hunters', rec(hunters))).toMatch(/^\d+ hunters?: Sam/);
     expect(describe('fight', rec(fight))).toBe('Fight against Vyraxen, round 1');
-    expect(describe('role', rec('keeper'))).toBe('Run the campaign and fights');
+    expect(describe('role', rec('keeper'))).toBe('Managing the Campaign');
     expect(describe('hunters', rec({ broken: true }))).toBe('Saved progress');
   });
 });

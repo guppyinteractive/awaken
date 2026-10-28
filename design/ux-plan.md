@@ -296,7 +296,7 @@ There is one app, and each device uses the parts its owner needs. State stays **
 | **Hunter player** (usually 3 of 4) | Their own phone | Hunter tracker only, for their own hunter |
 | **Keeper** (1 player) | Phone or tablet, cast to the TV | Campaign tracker + fight tracker, plus their own hunter |
 
-- The landing page asks what you're doing ("Track my hunter" / "Run the campaign and fights") and then **opens straight to that tool next time**. Switching is always one tap away.
+- The landing page asks what you're doing ("Playing a Hunter" / "Managing the Campaign") and opens that tool. The last choice is outlined next time; it doesn't open by itself.
 - A hunter player never has to see campaign or fight screens.
 - One device can hold **several hunters** (solo play, someone running two hunters, or a group using a single device).
 
@@ -504,3 +504,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-27 | Landing page only: one muted line above the disclaimer, "Enjoy text adventures like Zork? Try IFMachine for Android, also from Guppy Interactive.", linking to www.guppyinteractive.com (its page, not the Play Store, so iPhone users learn what it is). Kept off the tool pages, since the fight board is on the TV and the trackers are working screens. |
 | 2026-10-28 | Dropped the **Protect my data** button and the storage status line from the landing page: the browser's answer was opaque (Chrome quietly says no in a tab, Firefox prompts) and players couldn't tell what it did. Installing the app is the one thing to ask for; the installed app still requests permanent storage silently on every page until granted. |
 | 2026-10-28 | Removed "This device remembers your choice. You can switch any time." from the landing page: the saved role only outlines the last button picked (and goes into backups); it never opens a tracker by itself, so the line promised more than it does. |
+| 2026-10-28 | Landing role buttons renamed **Playing a Hunter** and **Managing the Campaign** (also how a backup describes the saved role). |
