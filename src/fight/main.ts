@@ -169,11 +169,16 @@ function nextAnnouncement(): void {
 
 // ---- Views -----------------------------------------------------------------
 
+/** The panel on screen, so a re-render can tell the same form from a new one. */
+let drawn: Panel = null;
+
 function render(): void {
+  if (panel === drawn) syncDraft(); // keep what's been entered in the stance form, e.g. when a pop-up closes
   // Keep an open sheet's scroll position when it re-renders (e.g. tapping exposed sides).
   const before = root.querySelector<HTMLElement>('.sheet');
   const kept = before && { label: before.getAttribute('aria-label'), top: before.scrollTop };
   root.innerHTML = fight ? boardView(fight) + panelView(fight) : setupView();
+  drawn = panel;
   const after = root.querySelector<HTMLElement>('.sheet');
   if (kept && after?.getAttribute('aria-label') === kept.label) after.scrollTop = kept.top;
   if (announcements.length) {
@@ -499,7 +504,7 @@ function stanceView(f: Fight, mode: 'reveal' | 'edit', d: E.Stance): string {
       ${mode === 'reveal' && f.damage ? `<p class="alert-text"><strong>${f.damage} damage carried over</strong> will be applied when you save.</p>` : ''}
       <div class="two">
         <label class="field"><span class="label">Stance</span>
-          <select name="label">${[...new Set(['I', 'II', 'III', d.label])].map((l) =>
+          <select name="label">${[...new Set([...E.STANCE_LABELS, d.label])].map((l) =>
             `<option ${l === d.label ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
         <label class="field"><span class="label">Toughness (per player)</span>
           <input name="toughness" type="number" inputmode="numeric" min="1" value="${d.toughness}">

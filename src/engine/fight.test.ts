@@ -86,6 +86,15 @@ describe('damage and wounds (rulebook p. 23)', () => {
     expect(blankStance(f).toughness).toBe(3);
     expect(blankStance(f).label).toBe('II');
   });
+
+  it('the next stance number follows the one picked, and stops at III', () => {
+    let f = createFight({ monster: 'M', players: 2, startingHealth: 10 });
+    expect(blankStance(f).label).toBe('I');
+    f = revealStance(f, { ...stance(2, 8), label: 'II' }).fight; // the table picked II for the first card
+    expect(blankStance(f).label).toBe('III');
+    f = revealStance(f, { ...stance(2, 6), label: 'III' }).fight;
+    expect(blankStance(f).label).toBe('III');
+  });
 });
 
 describe('struggle and unleash (rulebook p. 18)', () => {

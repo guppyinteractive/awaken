@@ -133,10 +133,21 @@ export function createFight(opts: NewFight): Fight {
   };
 }
 
+/** Stance cards are numbered I, II and III (p. 6). */
+export const STANCE_LABELS = ['I', 'II', 'III'] as const;
+
+/** The stance after the current one: I, then II, then III, which stays III. Counts stances if the current number isn't one of these. */
+export function nextStanceLabel(fight: Fight): string {
+  const prev = currentStance(fight)?.label;
+  const i = prev === undefined ? -1 : (STANCE_LABELS as readonly string[]).indexOf(prev);
+  const next = i >= 0 ? i + 1 : fight.stances.length;
+  return STANCE_LABELS[Math.min(next, STANCE_LABELS.length - 1)];
+}
+
 export function blankStance(fight: Fight): Stance {
   const prev = currentStance(fight);
   return {
-    label: romanNumeral(fight.stances.length + 1),
+    label: nextStanceLabel(fight),
     toughness: prev?.toughness ?? 2,
     progression: null,
     damageValue: prev?.damageValue ?? 0,
@@ -426,20 +437,6 @@ function clone<T>(value: T): T {
 
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
-}
-
-export function romanNumeral(n: number): string {
-  const table: [number, string][] = [
-    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-  ];
-  let out = '';
-  for (const [value, glyph] of table) {
-    while (n >= value) {
-      out += glyph;
-      n -= value;
-    }
-  }
-  return out || String(n);
 }
 
 /** One-line log text for an event. */
