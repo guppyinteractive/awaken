@@ -120,7 +120,6 @@ function render(): void {
     <main class="page landing">
       <section class="box">
         <h1 class="mid">What are you doing today?</h1>
-        <p class="note">This device remembers your choice. You can switch any time.</p>
         <div class="roles">
           <button class="role ${role === 'hunter' ? 'chosen' : ''}" data-role="hunter">
             <span class="mid">Track my hunter</span>
