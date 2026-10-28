@@ -511,3 +511,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-28 | Stance form: the stance number is a dropdown of I, II, III (each monster has exactly these three, p. 6); the sheet is titled **New stance** / **Edit stance**. Resistant is a single checkbox with its rule note, and the Shield and progression notes lost their asides. |
 | 2026-10-28 | The new-stance form picks the stance after the current one (I → II → III, staying at III), following whatever number the table picked last; the dropdown overrides it. What's typed in the stance form now survives a pop-up closing over it. |
 | 2026-10-28 | Completed quests show a big centred ✓ instead of the sheet's ✕, with the quest number small in the top corner. |
+| 2026-10-28 | The upkeep button reads **Monster upkeep (+N)**, and **Monster upkeep** once done (no longer highlighted), instead of "Upkeep" / "Upkeep done". |

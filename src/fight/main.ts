@@ -347,7 +347,7 @@ function boardView(f: Fight): string {
 
       <nav class="b-actions">
         <button class="btn ${f.upkeepDone ? '' : 'primary'}" data-act="upkeep" ${f.outcome || f.stancePending ? 'disabled' : ''}>
-          ${f.upkeepDone ? 'Upkeep done' : `Upkeep (+${f.players + f.acceleration})`}</button>
+          ${f.upkeepDone ? 'Monster upkeep' : `Monster upkeep (+${f.players + f.acceleration})`}</button>
         <button class="btn" data-act="end-round" ${f.outcome || f.stancePending ? 'disabled' : ''}>End round</button>
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo</button>
         <button class="btn" data-act="menu">Menu</button>
