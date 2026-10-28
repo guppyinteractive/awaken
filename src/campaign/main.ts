@@ -14,10 +14,10 @@ const QUESTS = 49;
 /** Chapters that start a new difficulty tier (which stance and peril cards to use). */
 const TIER_STARTS = [1, 4, 8];
 
-/** Like the campaign sheet: circled when unlocked, crossed when completed or expired. */
+/** Circled when unlocked, ticked when completed or expired. */
 type Quest = 'locked' | 'unlocked' | 'completed';
 const NEXT_QUEST: Record<Quest, Quest> = { locked: 'unlocked', unlocked: 'completed', completed: 'locked' };
-const QUEST_MARK: Record<Quest, string> = { locked: '', unlocked: '', completed: '✕' };
+const QUEST_MARK: Record<Quest, string> = { locked: '', unlocked: '', completed: '✓' };
 
 interface Campaign {
   chapters: boolean[];
@@ -156,7 +156,7 @@ function render(): void {
           </section>
           <section class="box">
             <div class="label">Quests · ${count('unlocked')} unlocked · ${count('completed')} completed</div>
-            <p class="note">Tap to cycle: locked, unlocked (circled), completed (✕). Mark expired quests completed.</p>
+            <p class="note">Tap to cycle: locked, unlocked (circled), completed (✓). Mark expired quests completed.</p>
             <div class="quests">${quests}</div>
           </section>
         </div>

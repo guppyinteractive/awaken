@@ -255,7 +255,7 @@ Out of scope for now: gear (weapon, helm, armor, item, potions) and anything fro
 | **Forge level** | 1–3 | Upgrades between fights |
 | **Forge elements** | The same 9 element kinds as the hunter sheet. Each is yes/no: is that element's forge unlocked? | Between fights |
 | **Trophies** | One mark per monster defeated, for the sheet's 22 monsters. Each has a **Fight** shortcut that starts a fight with it. | After winning a fight |
-| **Quests** | Numbered 1–49, each locked, unlocked (circled) or completed (✕); tap to cycle | During the campaign |
+| **Quests** | Numbered 1–49, each locked, unlocked (circled) or completed (✓); tap to cycle | During the campaign |
 | **Achievements** | Free-text list (about 7 lines on the sheet) | During the campaign |
 
 Out of scope for now: the Hunter's Trial (Valor, defeat track). It doesn't seem to be part of the normal campaign.
@@ -510,3 +510,4 @@ Tracked as decision issues in Beads (`bd list --type=decision`). Record the answ
 | 2026-10-28 | UI copy is direct, with no asides: dropped "like the sheet", "(reminder only)", and "with fights from there". |
 | 2026-10-28 | Stance form: the stance number is a dropdown of I, II, III (each monster has exactly these three, p. 6); the sheet is titled **New stance** / **Edit stance**. Resistant is a single checkbox with its rule note, and the Shield and progression notes lost their asides. |
 | 2026-10-28 | The new-stance form picks the stance after the current one (I → II → III, staying at III), following whatever number the table picked last; the dropdown overrides it. What's typed in the stance form now survives a pop-up closing over it. |
+| 2026-10-28 | Completed quests show a ✓ instead of the sheet's ✕. |
