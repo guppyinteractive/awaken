@@ -8,7 +8,7 @@ import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
 import { installWay, onInstallChange, promptInstall, registerWorker } from '../shared/install';
 import {
-  backUpEverything, contents, currentStatus, describe, LABELS, mergeHunter, messageHtml, parseBackup, partName, statusHtml,
+  backUpEverything, contents, currentStatus, describe, LABELS, mergeCampaign, mergeHunter, messageHtml, parseBackup, partName, statusHtml,
   type Backup, type Message, type Status,
 } from '../shared/backup';
 
@@ -29,6 +29,8 @@ let pending: {
   device: Records;
   /** Said instead of describing the record and what it replaces. */
   lines?: Partial<Record<RecordName, string>>;
+  /** Set when the file's hunter or campaign is merged with this device's, not replacing them. */
+  merge?: 'hunter' | 'campaign';
   /** Set the last backup time to this (only for a backup file). */
   backedUpAt?: string;
   done: string;
@@ -73,7 +75,7 @@ const when = (iso: string) => {
 
 function restorePreview(): string {
   if (!pending) return '';
-  const { question, records, device, lines } = pending;
+  const { question, records, device, lines, merge } = pending;
   const rows = NAMES.flatMap((n) => {
     if (lines?.[n]) return [`<li><strong>${esc(LABELS[n])}:</strong> ${esc(lines[n]!)}</li>`];
     if (records[n]) {
@@ -86,11 +88,11 @@ function restorePreview(): string {
     <div class="restore-preview" role="dialog" aria-label="Restore">
       <div class="mid">${esc(question)}</div>
       <ul>${rows.join('')}</ul>
-      <p class="note">${lines
-        ? 'The hunters as they are now are kept under Previous versions.'
+      <p class="note">${merge
+        ? `The ${merge}s as they are now are kept under Previous versions.`
         : 'This replaces the progress on this device. What it replaces is kept under Previous versions.'}</p>
       <div class="row">
-        <button class="btn alert" data-act="restore-confirm">${lines ? 'Restore the hunter' : 'Replace my progress'}</button>
+        <button class="btn alert" data-act="restore-confirm">${merge ? `Restore the ${merge}` : 'Replace my progress'}</button>
         <button class="btn" data-act="restore-cancel">Cancel</button>
       </div>
     </div>`;
@@ -186,6 +188,7 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
       done: `Restored ${what}.`,
     };
     if (backup.only === 'hunter') Object.assign(pending, oneHunter(backup, device));
+    if (backup.only === 'campaign') Object.assign(pending, oneCampaign(backup, device));
     message = null;
   } catch (e) {
     pending = null;
@@ -196,7 +199,7 @@ async function pickedFile(input: HTMLInputElement): Promise<void> {
 }
 
 /** Restoring one hunter merges it into this device's hunters. */
-function oneHunter(backup: Backup, device: Records): Pick<NonNullable<typeof pending>, 'records' | 'lines'> {
+function oneHunter(backup: Backup, device: Records): Pick<NonNullable<typeof pending>, 'records' | 'lines' | 'merge'> {
   let merged: ReturnType<typeof mergeHunter>;
   try {
     merged = mergeHunter(backup.records.hunters!, device.hunters);
@@ -210,6 +213,26 @@ function oneHunter(backup: Backup, device: Records): Pick<NonNullable<typeof pen
   return {
     records: { hunters: record },
     lines: { hunters: (replaces === null ? `adds ${name}.` : `${name} replaces the hunter with that name on this device.`) + kept },
+    merge: 'hunter',
+  };
+}
+
+/** Restoring one campaign merges it into this device's campaigns. */
+function oneCampaign(backup: Backup, device: Records): Pick<NonNullable<typeof pending>, 'records' | 'lines' | 'merge'> {
+  let merged: ReturnType<typeof mergeCampaign>;
+  try {
+    merged = mergeCampaign(backup.records.campaign!, device.campaign);
+  } catch {
+    throw new Error("The campaigns saved on this device can't be read, so this campaign can't be added to them.");
+  }
+  const { record, replaces } = merged;
+  const name = partName(backup) ?? 'an unnamed campaign';
+  const others = (record.data as { campaigns: unknown[] }).campaigns.length - 1;
+  const kept = others ? ` The other ${others === 1 ? 'campaign is' : `${others} campaigns are`} kept.` : '';
+  return {
+    records: { campaign: record },
+    lines: { campaign: (replaces === null ? `adds ${name}.` : `${name} replaces ${replaces.trim() || 'an unnamed campaign'}, its earlier copy on this device.`) + kept },
+    merge: 'campaign',
   };
 }
 

@@ -20,6 +20,8 @@ const NEXT_QUEST: Record<Quest, Quest> = { locked: 'unlocked', unlocked: 'comple
 const QUEST_MARK: Record<Quest, string> = { locked: '', unlocked: '', completed: '✓' };
 
 interface Campaign {
+  id: string;
+  name: string;
   chapters: boolean[];
   herbalist: number;
   forge: number;
@@ -30,7 +32,18 @@ interface Campaign {
   achievements: string[];
 }
 
-const fresh = (): Campaign => ({
+interface Saved {
+  campaigns: Campaign[];
+  /** The id of the campaign shown. */
+  current: string;
+}
+
+/** Not crypto.randomUUID(), which needs https and the dev server is plain http. */
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const fresh = (name: string): Campaign => ({
+  id: newId(),
+  name,
   chapters: Array(CHAPTERS).fill(false),
   herbalist: 0,
   forge: 0,
@@ -43,8 +56,30 @@ const fresh = (): Campaign => ({
 const BASE = import.meta.env.BASE_URL;
 const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
-const c = await load<Campaign>('campaign', fresh());
-const persist = () => void save('campaign', c);
+const first = fresh('Campaign 1');
+const state = await load<Saved>('campaign', { campaigns: [first], current: first.id });
+/** A link from the fight tracker opens the fight's campaign. */
+const linked = new URLSearchParams(location.search).get('campaign');
+if (linked && state.campaigns.some((x) => x.id === linked)) state.current = linked;
+if (linked) history.replaceState(null, '', location.pathname);
+/** The campaign shown. */
+let c = state.campaigns.find((x) => x.id === state.current) ?? state.campaigns[0];
+const persist = () => void save('campaign', state);
+
+function select(campaign: Campaign): void {
+  c = campaign;
+  state.current = c.id;
+  nudge = null;
+}
+
+/** "Campaign 2", or the next number not taken. */
+function nextName(): string {
+  let n = state.campaigns.length + 1;
+  while (state.campaigns.some((x) => x.name === `Campaign ${n}`)) n++;
+  return `Campaign ${n}`;
+}
+
+const label = (x: Campaign, i: number) => x.name.trim() || `Campaign ${i + 1}`;
 /** The outcome of the last backup from the foot of the page. */
 let message: Message | null = null;
 let status = await currentStatus();
@@ -105,7 +140,7 @@ function render(): void {
     <div class="trophy">
       <button class="toggle" aria-pressed="${won}" data-act="trophy" data-i="${i}" aria-label="${esc(name)} defeated">${won ? skullIcon() : ''}</button>
       <span class="grow">${esc(name)}</span>
-      <a class="btn small" href="${BASE}fight/?monster=${encodeURIComponent(name)}&tier=${tier}">Fight</a>
+      <a class="btn small" href="${BASE}fight/?monster=${encodeURIComponent(name)}&tier=${tier}&campaign=${encodeURIComponent(c.id)}">Fight</a>
     </div>`;
   }).join('');
 
@@ -117,12 +152,18 @@ function render(): void {
     <li class="row"><span class="grow">${esc(a)}</span>
       <button class="btn small quiet" data-act="drop-achievement" data-i="${i}" aria-label="Remove">✕</button></li>`).join('');
 
+  const tabs = state.campaigns.map((x, i) =>
+    `<button class="toggle" aria-pressed="${x === c}" data-act="pick" data-i="${i}">${esc(label(x, i))}</button>`).join('');
+
   root.innerHTML = `
     ${topbar('Campaign tracker')}
     <main class="page campaign">
+      <nav class="row tabs">${tabs}<button class="btn quiet small" data-act="add">+ Campaign</button></nav>
       <section class="box status">
+        <label class="field name"><span class="label">Campaign name</span>
+          <input data-field="name" value="${esc(c.name)}" autocomplete="off"></label>
         <div><div class="label">Now playing</div><div class="mid">Chapter ${chapter} · Tier ${tier}</div></div>
-        <a class="btn primary" href="${BASE}fight/?tier=${tier}">Start a fight</a>
+        <a class="btn primary" href="${BASE}fight/?tier=${tier}&campaign=${encodeURIComponent(c.id)}">Start a fight</a>
       </section>
       ${nudgeView()}
 
@@ -161,7 +202,8 @@ function render(): void {
           </section>
         </div>
       </div>
-      ${backupRowHtml('<button class="btn small" data-act="backup">Back up the campaign</button>', status, message)}
+      ${backupRowHtml('<button class="btn small" data-act="backup">Back up this campaign</button>', status, message)}
+      ${state.campaigns.length > 1 ? '<div class="row"><button class="btn alert small" data-act="remove">Delete this campaign</button></div>' : ''}
     </main>
     ${DISCLAIMER}`;
 }
@@ -182,6 +224,20 @@ root.addEventListener('click', async (ev) => {
       return;
     }
     case 'dismiss-nudge': nudge = null; render(); return;
+    case 'pick': select(state.campaigns[i]); break;
+    case 'add': {
+      const added = fresh(nextName());
+      state.campaigns.push(added);
+      select(added);
+      break;
+    }
+    case 'remove': {
+      if (!confirm(`Delete ${c.name.trim() || 'this campaign'}?`)) return;
+      const at = state.campaigns.indexOf(c);
+      state.campaigns.splice(at, 1);
+      select(state.campaigns[Math.max(0, at - 1)]);
+      break;
+    }
     case 'chapter':
       c.chapters[i] = !c.chapters[i];
       nudge = c.chapters[i] ? { chapter: i + 1 } : nudge?.chapter === i + 1 ? null : nudge;
@@ -216,6 +272,17 @@ root.addEventListener('submit', (ev) => {
   }
   persist();
   render();
+});
+
+// The name saves as you type without re-rendering (keeps focus and the keyboard open).
+root.addEventListener('input', (ev) => {
+  const el = ev.target as HTMLInputElement;
+  if (el.dataset.field !== 'name') return;
+  c.name = el.value;
+  const at = state.campaigns.indexOf(c);
+  const tab = root.querySelector(`[data-act="pick"][data-i="${at}"]`);
+  if (tab) tab.textContent = label(c, at);
+  persist();
 });
 
 void protectIfInstalled();

@@ -28,6 +28,14 @@ interface Saved {
   fight: Fight | null;
   undo: Fight[];
   log: string[];
+  /** The campaign the fight is for, or null for a one-off. */
+  campaignId: string | null;
+}
+
+/** The campaign tracker's record, as far as fights need it. */
+interface Campaigns {
+  campaigns: { id: string; name: string; trophies: string[] }[];
+  current: string;
 }
 
 const UNDO_LIMIT = 30;
@@ -35,8 +43,13 @@ const LOG_LIMIT = 40;
 
 const root = document.getElementById('app')!;
 await oneTab(); // before loading, so an inactive tab never saves
-const saved = await load<Saved>('fight', { fight: null, undo: [], log: [] });
+const saved = await load<Saved>('fight', { fight: null, undo: [], log: [], campaignId: null });
 let fight: Fight | null = saved.fight;
+let campaignId = saved.campaignId ?? null;
+/** The campaigns on this device, read once (another tab can't change them: see oneTab). */
+const campaigns = await load<Campaigns | null>('campaign', null);
+const campaignById = (id: string | null) => campaigns?.campaigns.find((x) => x.id === id) ?? null;
+const campaignName = (x: { name: string }) => x.name.trim() || 'an unnamed campaign';
 let undo: Fight[] = saved.undo ?? [];
 let log: string[] = saved.log ?? [];
 let panel: Panel = null;
@@ -62,15 +75,18 @@ let trophy: 'offer' | 'recorded' | 'had' | null = null;
 
 async function checkTrophy(): Promise<void> {
   const name = fight?.outcome === 'defeated' ? trophyFor(fight.monster) : null;
-  const campaign = name ? await load<{ trophies: string[] } | null>('campaign', null) : null;
+  const campaign = name ? campaignById(campaignId) : null;
   trophy = !campaign ? null : !campaign.trophies.includes(name!) ? 'offer' : trophy === 'recorded' ? 'recorded' : 'had';
 }
 
 async function recordTrophy(): Promise<void> {
   const name = trophyFor(fight!.monster)!;
-  const campaign = await load<{ trophies: string[] } | null>('campaign', null);
-  if (!campaign) return;
-  if (!campaign.trophies.includes(name)) await save('campaign', { ...campaign, trophies: [...campaign.trophies, name] });
+  const campaign = campaignById(campaignId);
+  if (!campaigns || !campaign) return;
+  if (!campaign.trophies.includes(name)) {
+    campaign.trophies = [...campaign.trophies, name];
+    await save('campaign', campaigns);
+  }
   trophy = 'recorded';
   await refreshStatus();
 }
@@ -108,7 +124,7 @@ function undoLast(): void {
 }
 
 function persist(): void {
-  void save('fight', { fight, undo, log } satisfies Saved);
+  void save('fight', { fight, undo, log, campaignId } satisfies Saved);
 }
 
 function queueAnnouncements(events: E.FightEvent[]): void {
@@ -202,6 +218,16 @@ function setupView(): string {
   const params = new URLSearchParams(location.search);
   const monster = params.get('monster') ?? '';
   const tier = params.get('tier') ?? '';
+  const list = campaigns?.campaigns ?? [];
+  const chosen = campaignById(params.get('campaign'))?.id ?? campaigns?.current;
+  // With one campaign there's nothing to choose; with none, a fight is a one-off.
+  const campaignField = list.length > 1 ? `
+        <label class="field"><span class="label">Campaign</span>
+          <select name="campaign">
+            ${list.map((x) => `<option value="${esc(x.id)}" ${x.id === chosen ? 'selected' : ''}>${esc(campaignName(x))}</option>`).join('')}
+            <option value="">None</option>
+          </select></label>`
+    : list.length ? `<input type="hidden" name="campaign" value="${esc(list[0].id)}">` : '';
   return `
     ${topbar('Fight tracker')}
     <main class="page setup">
@@ -221,6 +247,7 @@ function setupView(): string {
             <option value="">Not set</option>
             ${[1, 2, 3].map((t) => `<option value="${t}" ${String(t) === tier ? 'selected' : ''}>Tier ${t}</option>`).join('')}
           </select></label>
+        ${campaignField}
         <div class="field"><span class="label">Hardening track</span>
           <label class="toggle radio"><input name="hardening" type="checkbox" ${hasHardening(monster) ? 'checked' : ''}> On the monster board</label>
           <span class="note">${HARDENING_MONSTERS.join(' and ')} (p. 95). You can also add it later from the menu.</span></div>
@@ -374,7 +401,7 @@ function outcomeView(f: Fight): string {
       </div>
       <div class="row">
         <button class="btn ${trophy === 'offer' ? '' : 'primary'}" data-act="new-fight">New fight</button>
-        ${trophy ? `<a class="btn" href="${import.meta.env.BASE_URL}campaign/">Back to the campaign</a>` : ''}
+        ${trophy ? `<a class="btn" href="${import.meta.env.BASE_URL}campaign/?campaign=${encodeURIComponent(campaignId ?? '')}">Back to the campaign</a>` : ''}
         <button class="btn" data-act="undo" ${undo.length ? '' : 'disabled'}>Undo last action</button>
       </div>
     </div></div>`;
@@ -382,14 +409,17 @@ function outcomeView(f: Fight): string {
 
 function trophyView(f: Fight): string {
   const name = esc(trophyFor(f.monster) ?? '');
+  const campaign = campaignById(campaignId);
+  // Name the campaign only when there's more than one.
+  const where = campaign && campaigns!.campaigns.length > 1 ? esc(campaignName(campaign)) : 'the campaign tracker';
   switch (trophy) {
     case 'offer': return `
       <div class="row">
         <button class="btn primary" data-act="record-trophy">Record the ${name} trophy</button>
-        <span class="note">Ticks it in the campaign tracker.</span>
+        <span class="note">Ticks it in ${where}.</span>
       </div>`;
-    case 'recorded': return `<p class="note" role="status"><strong>${name} trophy recorded</strong> in the campaign tracker.</p>`;
-    case 'had': return `<p class="note">The campaign tracker already has the ${name} trophy.</p>`;
+    case 'recorded': return `<p class="note" role="status"><strong>${name} trophy recorded</strong> in ${where}.</p>`;
+    case 'had': return `<p class="note">${where[0].toUpperCase() + where.slice(1)} already has the ${name} trophy.</p>`;
     default: return '';
   }
 }
@@ -411,7 +441,8 @@ function panelView(f: Fight): string {
     case 'add-state': return addStateView(f);
     case 'stance': return stanceView(f, panel.mode, panel.draft);
     case 'resume': return sheet('Fight in progress', `
-      <p>${esc(f.monster)}, round ${f.round}${f.tier ? `, tier ${f.tier}` : ''}.</p>
+      <p>${esc(f.monster)}, round ${f.round}${f.tier ? `, tier ${f.tier}` : ''}${
+        campaignById(campaignId) && campaigns!.campaigns.length > 1 ? `, ${esc(campaignName(campaignById(campaignId)!))}` : ''}.</p>
       <div class="row">
         <button class="btn primary" data-act="keep-fight">Keep this fight</button>
         <button class="btn" data-act="new-fight">New fight</button>
@@ -568,6 +599,7 @@ root.addEventListener('click', async (ev) => {
   }
   if (act === 'new-fight') {
     fight = null;
+    campaignId = null;
     undo = [];
     log = [];
     panel = null;
@@ -591,7 +623,7 @@ root.addEventListener('click', async (ev) => {
     case 'menu': panel = { kind: 'menu' }; message = null; void refreshStatus(); break;
     case 'backup':
     case 'backup-all':
-      message = act === 'backup' ? await backUpPart('fight', { fight, undo, log } satisfies Saved) : await backUpEverything();
+      message = act === 'backup' ? await backUpPart('fight', { fight, undo, log, campaignId } satisfies Saved) : await backUpEverything();
       await refreshStatus();
       break;
     case 'log': panel = { kind: 'log' }; render(); break;
@@ -664,6 +696,7 @@ root.addEventListener('submit', (ev) => {
         hardening: data.get('hardening') === 'on',
         charge: data.get('charge') === 'on',
       });
+      campaignId = String(data.get('campaign') ?? '') || null;
       forgetLink();
       undo = [];
       log = [`New fight: ${fight.monster}, ${fight.players} players, health ${fight.health}`];
@@ -708,6 +741,7 @@ root.addEventListener('input', (ev) => {
 if (fight && new URLSearchParams(location.search).has('tier')) {
   if (fight.outcome) {
     fight = null;
+    campaignId = null;
     undo = [];
     log = [];
     persist();

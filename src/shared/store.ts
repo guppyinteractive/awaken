@@ -13,6 +13,9 @@ export interface Stored {
 
 type Upgrade = (data: any) => unknown;
 
+/** The id the campaign upgrade gives the campaign that was already on the device. */
+export const FIRST_CAMPAIGN = 'c1';
+
 /**
  * UPGRADES[name][i] turns version i+1 into version i+2. Once shipped, never
  * edit or remove one; add the next step instead, with a fixture of the old
@@ -45,6 +48,9 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
       const up = <F extends object | null>(f: F): F => f && { ...f, charge: null };
       return { ...d, fight: up(d.fight), undo: (d.undo ?? []).map(up) };
     },
+    // v5 → v6: the fight remembers its campaign. A fight from before goes to
+    // the device's one campaign, which the campaign upgrade gives the id 'c1'.
+    (d: { fight: object | null }) => ({ ...d, campaignId: d.fight ? FIRST_CAMPAIGN : null }),
   ],
   hunters: [],
   campaign: [
@@ -56,6 +62,8 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
     }),
     // v2 → v3: quests went from done or not to locked, unlocked or completed.
     (c: { quests: boolean[] }) => ({ ...c, quests: c.quests.map((done) => (done ? 'completed' : 'locked')) }),
+    // v3 → v4: a list of campaigns, each with an id and a name.
+    (c: object) => ({ campaigns: [{ id: FIRST_CAMPAIGN, name: 'Campaign 1', ...c }], current: FIRST_CAMPAIGN }),
   ],
   role: [],
 };

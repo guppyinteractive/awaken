@@ -77,7 +77,7 @@ describe('upgrades', () => {
   });
 
   it('campaign v1 → v2 keeps only trophies that were won, as names', () => {
-    const out = upgrade('campaign', { version: 1, data: FIXTURES['campaign.v1'] }) as { trophies: string[] };
+    const out = (upgrade('campaign', { version: 1, data: FIXTURES['campaign.v1'] }) as { campaigns: { trophies: string[] }[] }).campaigns[0];
     expect(out.trophies).toEqual(['Vyraxen', 'Korowon']);
   });
 
@@ -87,17 +87,28 @@ describe('upgrades', () => {
     expect(out).toEqual({
       fight: { states: ['stunned'], round: 1, acceleration: 2, charge: null },
       undo: [{ states: [], round: 1, acceleration: 4, charge: null }],
+      campaignId: 'c1',
     });
   });
 
   it('fight v4 → v5 gives fights no Charge track', () => {
     const out = upgrade('fight', { version: 4, data: { fight: { round: 2 }, undo: [{ round: 1 }] } });
-    expect(out).toEqual({ fight: { round: 2, charge: null }, undo: [{ round: 1, charge: null }] });
+    expect(out).toEqual({ fight: { round: 2, charge: null }, undo: [{ round: 1, charge: null }], campaignId: 'c1' });
   });
 
   it('campaign v2 → v3 turns done quests into completed and the rest into locked', () => {
-    const out = upgrade('campaign', { version: 2, data: { quests: [true, false] } }) as { quests: string[] };
-    expect(out.quests).toEqual(['completed', 'locked']);
+    const out = upgrade('campaign', { version: 2, data: { quests: [true, false] } }) as { campaigns: { quests: string[] }[] };
+    expect(out.campaigns[0].quests).toEqual(['completed', 'locked']);
+  });
+
+  it('campaign v3 → v4 makes the campaign the first of a list, and selects it', () => {
+    expect(upgrade('campaign', { version: 3, data: { trophies: ['Vyraxen'] } }))
+      .toEqual({ campaigns: [{ id: 'c1', name: 'Campaign 1', trophies: ['Vyraxen'] }], current: 'c1' });
+  });
+
+  it('fight v5 → v6 gives a fight in progress to the first campaign', () => {
+    expect(upgrade('fight', { version: 5, data: { fight: { round: 2 }, undo: [] } })).toMatchObject({ campaignId: 'c1' });
+    expect(upgrade('fight', { version: 5, data: { fight: null, undo: [] } })).toMatchObject({ campaignId: null });
   });
 
   it('refuses versions it does not know', () => {
@@ -136,18 +147,18 @@ describe('store', () => {
 
   it('imports wireframe localStorage data once, then clears it after a later load', async () => {
     local.setItem(legacyKey('campaign'), JSON.stringify(FIXTURES['campaign.v1']));
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
-    expect((await raw('campaign'))?.data).toEqual(FIXTURES['campaign.v3']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES[`campaign.v${currentVersion('campaign')}`]);
+    expect((await raw('campaign'))?.data).toEqual(FIXTURES[`campaign.v${currentVersion('campaign')}`]);
     expect(local.getItem(legacyKey('campaign'))).not.toBeNull(); // kept until the next load
 
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES[`campaign.v${currentVersion('campaign')}`]);
     expect(local.getItem(legacyKey('campaign'))).toBeNull();
   });
 
   it('keeps a snapshot of the record from before an upgrade', async () => {
     const old: Stored = { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] };
     await putRaw('campaign', old);
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES[`campaign.v${currentVersion('campaign')}`]);
     const [snap] = await reload().snapshots();
     expect(snap).toMatchObject({ name: 'campaign', snapshot: { ...old, reason: 'upgrade' } });
   });
@@ -192,7 +203,7 @@ describe('backup records', () => {
     await s.save('campaign', { other: true });
     await s.save('hunters', FIXTURES['hunters.v1']);
     await s.restore({ campaign: { version: 1, savedAt: '2026-10-01T00:00:00.000Z', data: FIXTURES['campaign.v1'] } }, '2026-10-02T00:00:00.000Z');
-    expect(await reload().load('campaign', null)).toEqual(FIXTURES['campaign.v3']);
+    expect(await reload().load('campaign', null)).toEqual(FIXTURES[`campaign.v${currentVersion('campaign')}`]);
     expect(await reload().load('hunters', null)).toEqual(FIXTURES['hunters.v1']);
     expect(await reload().backedUpAt()).toBe('2026-10-02T00:00:00.000Z');
   });

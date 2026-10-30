@@ -14,6 +14,7 @@ export const FORMAT = 2;
  * A file that backs up one thing rather than everything. 'hunter' holds a
  * hunters record with a single hunter; restoring it adds that hunter (or
  * replaces the one with the same player name) and keeps the others.
+ * 'campaign' does the same with one campaign, matched by id.
  */
 export type Part = 'hunter' | 'campaign' | 'fight';
 const PARTS: Part[] = ['hunter', 'campaign', 'fight'];
@@ -36,7 +37,7 @@ export function makeBackup(records: Partial<Record<RecordName, Stored>>, now = n
 }
 
 /**
- * A backup of one thing from a page's current data: one hunter, the campaign,
+ * A backup of one thing from a page's current data: one hunter, one campaign,
  * or the fight (as the fight page saves it).
  */
 export function makePart(only: Part, data: unknown, now = new Date()): Backup {
@@ -44,7 +45,10 @@ export function makePart(only: Part, data: unknown, now = new Date()): Backup {
   const stored: Stored = {
     version: currentVersion(name),
     savedAt: now.toISOString(),
-    data: structuredClone(only === 'hunter' ? { hunters: [data], current: 0 } : data),
+    data: structuredClone(
+      only === 'hunter' ? { hunters: [data], current: 0 }
+      : only === 'campaign' ? { campaigns: [data], current: (data as { id: string }).id }
+      : data),
   };
   return { ...makeBackup({ [name]: stored }, now), only };
 }
@@ -59,12 +63,13 @@ export function fileName(b: Backup): string {
   return ['primal', b.only, slug(partName(b) ?? ''), date].filter(Boolean).join('-') + '.json';
 }
 
-/** The hunter's player name or the fight's monster, if the file has one. */
+/** The hunter's player name, the campaign's name or the fight's monster, if the file has one. */
 export function partName(b: Backup): string | null {
   try {
     const name = PART_RECORD[b.only!];
     const d = upgrade(name, b.records[name]!) as any;
     if (b.only === 'hunter') return d.hunters[0].player.trim() || null;
+    if (b.only === 'campaign') return d.campaigns[0].name.trim() || null;
     if (b.only === 'fight') return d.fight?.monster || null;
   } catch {
     // Described generically.
@@ -77,7 +82,7 @@ export function contents(b: Backup): string {
   const name = partName(b);
   switch (b.only) {
     case 'hunter': return name ? `the hunter ${name}` : 'a hunter';
-    case 'campaign': return 'the campaign';
+    case 'campaign': return name ? `the campaign ${name}` : 'a campaign';
     case 'fight': return name ? `the fight against ${name}` : 'a fight';
     default: return 'the backup';
   }
@@ -117,8 +122,13 @@ export function parseBackup(text: string): Backup {
       throw new Error('This backup was made by a newer version of the app. Reload the page to update, then try again.');
     }
     const name = PART_RECORD[b.only];
-    const hunters = records.hunters && (upgrade('hunters', records.hunters) as { hunters?: unknown }).hunters;
-    if (Object.keys(records).join() !== name || (b.only === 'hunter' && !(Array.isArray(hunters) && hunters.length === 1))) {
+    const one = (n: RecordName, list: string) => {
+      const items = records[n] && (upgrade(n, records[n]!) as Record<string, unknown>)[list];
+      return Array.isArray(items) && items.length === 1;
+    };
+    if (Object.keys(records).join() !== name
+      || (b.only === 'hunter' && !one('hunters', 'hunters'))
+      || (b.only === 'campaign' && !one('campaign', 'campaigns'))) {
       throw new Error('This backup is damaged and can\'t be restored.');
     }
     out.only = b.only;
@@ -152,6 +162,25 @@ export function mergeHunter(file: Stored, device: Stored | undefined, now = new 
   };
 }
 
+interface Campaign { id: string; name: string }
+
+/**
+ * Restoring a one-campaign file: the campaign record with that campaign in
+ * place of the device's one with the same id, or added, and selected.
+ * `replaces` is the name of the campaign it replaces, or null.
+ */
+export function mergeCampaign(file: Stored, device: Stored | undefined, now = new Date()): { record: Stored; replaces: string | null } {
+  const campaign = (upgrade('campaign', file) as { campaigns: Campaign[] }).campaigns[0];
+  const list = device ? [...(upgrade('campaign', device) as { campaigns: Campaign[] }).campaigns] : [];
+  const found = list.findIndex((c) => c.id === campaign.id);
+  const replaces = found >= 0 ? list[found].name : null;
+  list[found >= 0 ? found : list.length] = campaign;
+  return {
+    record: { version: currentVersion('campaign'), savedAt: now.toISOString(), data: { campaigns: list, current: campaign.id } },
+    replaces,
+  };
+}
+
 export const LABELS: Record<RecordName, string> = {
   hunters: 'Hunter tracker',
   campaign: 'Campaign tracker',
@@ -169,8 +198,14 @@ export function describe(name: RecordName, stored: Stored): string {
         return `${names.length} hunter${names.length === 1 ? '' : 's'}: ${names.join(', ')}`;
       }
       case 'campaign': {
-        const done = (d.chapters as boolean[]).filter(Boolean).length;
-        return `${done} chapter${done === 1 ? '' : 's'} done, ${d.trophies.length} troph${d.trophies.length === 1 ? 'y' : 'ies'}`;
+        const list = d.campaigns as { name: string; chapters: boolean[]; trophies: string[] }[];
+        const one = (c: typeof list[number]) => {
+          const done = c.chapters.filter(Boolean).length;
+          return `${done} chapter${done === 1 ? '' : 's'} done, ${c.trophies.length} troph${c.trophies.length === 1 ? 'y' : 'ies'}`;
+        };
+        const name = (c: typeof list[number]) => c.name.trim() || 'unnamed';
+        if (list.length === 1) return `${name(list[0])}: ${one(list[0])}`;
+        return `${list.length} campaigns: ${list.map((c) => `${name(c)} (${one(c)})`).join('; ')}`;
       }
       case 'fight':
         if (!d.fight) return 'No fight in progress';
