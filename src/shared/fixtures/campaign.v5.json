@@ -1,0 +1,99 @@
+{
+  "campaigns": [
+    {
+      "id": "c1",
+      "name": "Campaign 1",
+      "chapters": [
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "herbalist": 1,
+      "forge": 2,
+      "forgeElements": [
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "trophies": [
+        "Vyraxen",
+        "Korowon"
+      ],
+      "quests": [
+        "completed",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked",
+        "locked"
+      ],
+      "achievements": [
+        "First hunt"
+      ],
+      "trial": {
+        "on": false,
+        "defeats": 0,
+        "totalDefeats": 0,
+        "valor": 0
+      }
+    }
+  ],
+  "current": "c1"
+}

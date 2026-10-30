@@ -64,6 +64,11 @@ export const UPGRADES: Record<RecordName, Upgrade[]> = {
     (c: { quests: boolean[] }) => ({ ...c, quests: c.quests.map((done) => (done ? 'completed' : 'locked')) }),
     // v3 → v4: a list of campaigns, each with an id and a name.
     (c: object) => ({ campaigns: [{ id: FIRST_CAMPAIGN, name: 'Campaign 1', ...c }], current: FIRST_CAMPAIGN }),
+    // v4 → v5: campaigns gained the Hunter's Trial, off and at zero.
+    (d: { campaigns: object[] }) => ({
+      ...d,
+      campaigns: d.campaigns.map((c) => ({ ...c, trial: { on: false, defeats: 0, totalDefeats: 0, valor: 0 } })),
+    }),
   ],
   role: [],
 };

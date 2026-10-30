@@ -3,7 +3,7 @@ import { backupStatus, contents, describe, fileName, makeBackup, makePart, merge
 import { currentVersion, type Stored } from './store';
 import campaignV1 from './fixtures/campaign.v1.json';
 import campaignV3 from './fixtures/campaign.v3.json';
-import campaigns from './fixtures/campaign.v4.json';
+import campaigns from './fixtures/campaign.v5.json';
 import hunters from './fixtures/hunters.v1.json';
 import fight from './fixtures/fight.v1.json';
 
@@ -124,8 +124,11 @@ group('backing up one thing', () => {
 group('restore preview', () => {
   it('describes each record in plain words, upgrading old ones', () => {
     expect(describe('campaign', rec(campaignV1))).toBe('Campaign 1: 2 chapters done, 2 trophies');
-    const two = rec({ campaigns: [campaigns.campaigns[0], { ...campaigns.campaigns[0], name: ' ', trophies: ['Vyraxen'] }], current: 'c1' }, 4);
+    const two = rec({ campaigns: [campaigns.campaigns[0], { ...campaigns.campaigns[0], name: ' ', trophies: ['Vyraxen'] }], current: 'c1' }, 5);
     expect(describe('campaign', two)).toBe('2 campaigns: Campaign 1 (2 chapters done, 2 trophies); unnamed (2 chapters done, 1 trophy)');
+    const trial = { on: true, defeats: 1, totalDefeats: 2, valor: 6 };
+    const playing = rec({ campaigns: [{ ...campaigns.campaigns[0], trial }], current: 'c1' }, 5);
+    expect(describe('campaign', playing)).toBe('Campaign 1: 2 chapters done, 2 trophies, trial score 92');
     expect(describe('hunters', rec(hunters))).toMatch(/^\d+ hunters?: Sam/);
     expect(describe('fight', rec(fight))).toBe('Fight against Vyraxen, round 1');
     expect(describe('role', rec('keeper'))).toBe('Managing the Campaign');

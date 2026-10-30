@@ -8,6 +8,7 @@ import { registerWorker } from '../shared/install';
 import { backUpEverything, backUpPart, backupRowHtml, currentStatus, messageHtml, type Message } from '../shared/backup';
 import { ELEMENTS, MONSTERS } from '../shared/game';
 import { skullIcon } from '../shared/icons';
+import { DEFEAT_SPACES, freshTrial, lost, over, score, won, type Trial } from '../shared/trial';
 
 const CHAPTERS = 11;
 const QUESTS = 49;
@@ -30,6 +31,7 @@ interface Campaign {
   trophies: string[];
   quests: Quest[];
   achievements: string[];
+  trial: Trial;
 }
 
 interface Saved {
@@ -51,6 +53,7 @@ const fresh = (name: string): Campaign => ({
   trophies: [],
   quests: Array(QUESTS).fill('locked'),
   achievements: [],
+  trial: freshTrial(),
 });
 
 const BASE = import.meta.env.BASE_URL;
@@ -85,6 +88,8 @@ let message: Message | null = null;
 let status = await currentStatus();
 /** A chapter just completed: suggest a backup, then show how it went. */
 let nudge: { chapter: number; result?: Message } | null = null;
+/** What the last Hunter's Trial button did. */
+let trialNote = '';
 
 /** The chapter being played: the first one not yet completed. */
 function currentChapter(): number {
@@ -102,6 +107,39 @@ function levelPicker(name: 'herbalist' | 'forge', title: string): string {
       <div class="row">${[1, 2, 3].map((n) =>
         `<button class="toggle" aria-pressed="${c[name] >= n}" data-act="level" data-name="${name}" data-n="${n}">Lvl ${n}</button>`).join('')}
       </div></div>`;
+}
+
+function counter(field: 'totalDefeats' | 'valor', title: string): string {
+  const n = c.trial[field];
+  return `
+    <div class="counter">
+      <span class="name">${title}</span>
+      <button class="btn small" data-act="trial-count" data-field="${field}" data-d="-1" aria-label="${title} minus 1" ${n ? '' : 'disabled'}>−</button>
+      <span class="n">${n}</span>
+      <button class="btn small" data-act="trial-count" data-field="${field}" data-d="1" aria-label="${title} plus 1">+</button>
+    </div>`;
+}
+
+function trialView(): string {
+  const t = c.trial;
+  if (!t.on) return '';
+  const spaces = Array.from({ length: DEFEAT_SPACES }, (_, i) =>
+    `<button class="toggle defeat" aria-pressed="${t.defeats > i}" data-act="defeat" data-n="${i + 1}" aria-label="Defeat ${i + 1}">${t.defeats > i ? '✕' : ''}</button>`).join('');
+  return `
+    <section class="box trial">
+      <div class="row"><span class="label grow">Hunter's Trial</span>
+        <span class="note">Hunter score</span><span class="mid">${score(t)}</span></div>
+      <div class="field"><span class="label">Defeats</span><div class="row">${spaces}</div></div>
+      ${over(t) ? '<p class="note stale" role="status"><strong>Campaign over:</strong> start again from Chapter 1.</p>' : ''}
+      <div class="slots">${counter('totalDefeats', 'Total defeats')}${counter('valor', 'Valor')}</div>
+      <div class="row">
+        <button class="btn" data-act="trial-lost" ${over(t) ? 'disabled' : ''}>Scenario lost</button>
+        <button class="btn" data-act="trial-won" ${over(t) ? 'disabled' : ''}>Scenario won</button>
+        <button class="btn" data-act="trial-won" data-noko ${over(t) ? 'disabled' : ''}>Won, no one KO'd</button>
+      </div>
+      ${trialNote ? `<p class="note" role="status">${esc(trialNote)}</p>` : ''}
+      <p class="note">Score: 90 − 2 × total defeats + valor (p. 63).</p>
+    </section>`;
 }
 
 function nudgeView(): string {
@@ -162,6 +200,7 @@ function render(): void {
       <section class="box status">
         <label class="field name"><span class="label">Campaign name</span>
           <input data-field="name" value="${esc(c.name)}" autocomplete="off"></label>
+        <div class="field trial-on"><label class="toggle radio"><input type="checkbox" data-act="trial-on" ${c.trial.on ? 'checked' : ''}> Playing the Hunter's Trial</label></div>
         <div><div class="label">Now playing</div><div class="mid">Chapter ${chapter} · Tier ${tier}</div></div>
         <a class="btn primary" href="${BASE}fight/?tier=${tier}&campaign=${encodeURIComponent(c.id)}">Start a fight</a>
       </section>
@@ -174,6 +213,7 @@ function render(): void {
             <p class="note">Mark chapters as you complete them. T1–T3 mark where each difficulty tier starts.</p>
             <div class="chapters">${chapters}</div>
           </section>
+          ${trialView()}
           <section class="box upgrades">
             ${levelPicker('herbalist', 'Herbalist')}
             ${levelPicker('forge', 'Forge')}
@@ -213,6 +253,7 @@ root.addEventListener('click', async (ev) => {
   if (!t) return;
   const i = Number(t.dataset.i);
   message = null;
+  trialNote = '';
   switch (t.dataset.act) {
     case 'backup':
     case 'backup-all': {
@@ -243,6 +284,31 @@ root.addEventListener('click', async (ev) => {
       nudge = c.chapters[i] ? { chapter: i + 1 } : nudge?.chapter === i + 1 ? null : nudge;
       break;
     case 'quest': c.quests[i] = NEXT_QUEST[c.quests[i]]; break;
+    case 'trial-on': c.trial.on = (t as HTMLInputElement).checked; break;
+    case 'defeat': {
+      const n = Number(t.dataset.n);
+      c.trial.defeats = c.trial.defeats === n ? n - 1 : n; // tapping the last marked space again clears it
+      break;
+    }
+    case 'trial-count': {
+      const field = t.dataset.field as 'totalDefeats' | 'valor';
+      c.trial[field] = Math.max(0, c.trial[field] + Number(t.dataset.d));
+      break;
+    }
+    case 'trial-lost':
+      c.trial = lost(c.trial);
+      trialNote = over(c.trial) ? '' : `Defeat ${c.trial.defeats} marked.`;
+      break;
+    case 'trial-won': {
+      const defeats = c.trial.defeats;
+      const result = won(c.trial, 'noko' in t.dataset);
+      c.trial = result.trial;
+      trialNote = [
+        defeats ? `${defeats} defeat${defeats === 1 ? '' : 's'} moved to the total.` : '',
+        result.valor ? `+${result.valor} valor.` : 'No valor.',
+      ].filter(Boolean).join(' ');
+      break;
+    }
     case 'element': c.forgeElements[i] = !c.forgeElements[i]; break;
     case 'trophy': {
       const name = MONSTERS[i];

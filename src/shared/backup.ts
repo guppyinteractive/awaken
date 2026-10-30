@@ -5,6 +5,7 @@
 import {
   UPGRADES, backedUpAt, currentVersion, exportAll, markBackedUp, upgrade, type RecordName, type Stored,
 } from './store';
+import { score, type Trial } from './trial';
 import { esc } from './util';
 
 /** Format 2 added `only`. */
@@ -198,10 +199,11 @@ export function describe(name: RecordName, stored: Stored): string {
         return `${names.length} hunter${names.length === 1 ? '' : 's'}: ${names.join(', ')}`;
       }
       case 'campaign': {
-        const list = d.campaigns as { name: string; chapters: boolean[]; trophies: string[] }[];
+        const list = d.campaigns as { name: string; chapters: boolean[]; trophies: string[]; trial: Trial }[];
         const one = (c: typeof list[number]) => {
           const done = c.chapters.filter(Boolean).length;
-          return `${done} chapter${done === 1 ? '' : 's'} done, ${c.trophies.length} troph${c.trophies.length === 1 ? 'y' : 'ies'}`;
+          return `${done} chapter${done === 1 ? '' : 's'} done, ${c.trophies.length} troph${c.trophies.length === 1 ? 'y' : 'ies'}${
+            c.trial.on ? `, trial score ${score(c.trial)}` : ''}`;
         };
         const name = (c: typeof list[number]) => c.name.trim() || 'unnamed';
         if (list.length === 1) return `${name(list[0])}: ${one(list[0])}`;

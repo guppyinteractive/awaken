@@ -103,7 +103,13 @@ describe('upgrades', () => {
 
   it('campaign v3 → v4 makes the campaign the first of a list, and selects it', () => {
     expect(upgrade('campaign', { version: 3, data: { trophies: ['Vyraxen'] } }))
-      .toEqual({ campaigns: [{ id: 'c1', name: 'Campaign 1', trophies: ['Vyraxen'] }], current: 'c1' });
+      .toMatchObject({ campaigns: [{ id: 'c1', name: 'Campaign 1', trophies: ['Vyraxen'] }], current: 'c1' });
+  });
+
+  it("campaign v4 → v5 gives every campaign the Hunter's Trial, off and at zero", () => {
+    const out = upgrade('campaign', { version: 4, data: { campaigns: [{ id: 'a' }, { id: 'b' }], current: 'b' } });
+    const trial = { on: false, defeats: 0, totalDefeats: 0, valor: 0 };
+    expect(out).toEqual({ campaigns: [{ id: 'a', trial }, { id: 'b', trial }], current: 'b' });
   });
 
   it('fight v5 → v6 gives a fight in progress to the first campaign', () => {
