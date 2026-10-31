@@ -2,7 +2,7 @@ import '../shared/wire.css';
 import './fight.css';
 import * as E from '../engine/fight';
 import { STATE_DEFS, STATE_IDS, type StateId } from '../engine/states';
-import { DISCLAIMER, esc, keepAwake, topbar } from '../shared/util';
+import { DISCLAIMER, esc, keepAwake, switchTools, topbar } from '../shared/util';
 import { load, save } from '../shared/store';
 import { protectIfInstalled } from '../shared/persist';
 import { oneTab } from '../shared/tabs';
@@ -229,7 +229,7 @@ function setupView(): string {
           </select></label>`
     : list.length ? `<input type="hidden" name="campaign" value="${esc(list[0].id)}">` : '';
   return `
-    ${topbar('Fight tracker')}
+    ${topbar('Fight tracker', 'fight')}
     <main class="page setup">
       <form class="box sheet-inline" data-form="setup">
         <h1 class="mid">New fight</h1>
@@ -493,7 +493,8 @@ function menuView(f: Fight): string {
       <button class="btn" data-act="backup">Back up this fight</button>
       ${statusHtml(status)}
       ${messageHtml(message)}
-      <a class="btn" href="${import.meta.env.BASE_URL}">Home</a>
+      <div class="row"><a class="btn grow" href="${import.meta.env.BASE_URL}">Home</a>
+        ${switchTools('fight').filter((x) => x.tool !== 'fight').map((x) => `<a class="btn grow" href="${x.href}">${x.name}</a>`).join('')}</div>
       <button class="btn alert" data-act="new-fight">New fight</button>
     </div>`);
 }

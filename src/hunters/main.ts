@@ -81,7 +81,7 @@ function render(): void {
     </section>`).join('');
 
   root.innerHTML = `
-    ${topbar('Hunter tracker')}
+    ${topbar('Hunter tracker', 'hunters')}
     <main class="page hunters">
       <nav class="row tabs">${tabs}<button class="btn quiet small" data-act="add">+ Hunter</button></nav>
       <div class="cols">

@@ -50,8 +50,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
-.topbar a { color: inherit; text-decoration: none; font-weight: 700; letter-spacing: 0.04em; }
+.topbar a { color: inherit; text-decoration: none; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
 .topbar .where { color: var(--muted); }
+.topbar .switch { display: flex; gap: 2px; margin-left: auto; }
+/* On a phone held upright the links take a second row. */
+.topbar:has(.switch) { flex-wrap: wrap; row-gap: 4px; column-gap: 8px; }
+.topbar .switch a { font-weight: 400; letter-spacing: 0; padding: 6px 10px; border-radius: 6px; color: var(--muted); }
+.topbar .switch a[aria-current] { color: var(--ink); font-weight: 700; background: var(--line); }
 .storage-warning {
   margin: 0;
   padding: 8px 16px;

@@ -194,7 +194,7 @@ function render(): void {
     `<button class="toggle" aria-pressed="${x === c}" data-act="pick" data-i="${i}">${esc(label(x, i))}</button>`).join('');
 
   root.innerHTML = `
-    ${topbar('Campaign tracker')}
+    ${topbar('Campaign tracker', 'campaign')}
     <main class="page campaign">
       <nav class="row tabs">${tabs}<button class="btn quiet small" data-act="add">+ Campaign</button></nav>
       <section class="box status">
